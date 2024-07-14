@@ -9,14 +9,21 @@ class Memristor_Crossbar:
     positive_target: float
     negative_target: float
     range: float
+    training_set_width: int
     epochs: int = 48
     
+    test_set_width: int = 16 - training_set_width
     conductance_data: np.ndarray = None
     shifts: np.ndarray = None
     logic_currents: np.ndarray = None
     all_delta_ij: np.ndarray = None
     conductances: np.ndarray = None
     all_conductances: np.ndarray = None
+    saved_correct_conductances: np.ndarray = None
+    errors: np.ndarray = None
+    all_errors: np.ndarray = None
+    result: np.ndarray = None
+    predictions: np.ndarray = None
 
     def __post_init__(self):
 
@@ -26,6 +33,11 @@ class Memristor_Crossbar:
         self.all_delta_ij = np.empty([16, 2, 4])
         self.conductances = np.empty([2, 4, 4])
         self.all_conductances = np.empty([self.epochs, 4, 4])
+        self.saved_correct_conductances = np.empty([4, 4])
+        self.errors = np.empty([self.training_set_width, 2])
+        self.all_errors = np.empty([self.epochs])     
+        self.result = np.empty([self.epochs, 2, self.training_set_width])
+        self.predictions = np.empty([self.test_set_width, 2])
 
 
     def experimental_data(self, conductance_data : np.ndarray):
@@ -119,3 +131,74 @@ class Memristor_Crossbar:
                     self.conductances[0, i, j * 2 + 1] = new_conductance + self.shifts[i, j * 2 + 1]
         self.all_conductances[epoch] = self.conductances[0] 
         print("Updated Conductances:", self.conductances[0])
+
+
+    def convergence_criterion(self, output: np.ndarray, i, epoch) -> bool:
+        fi = self.activation_function()
+        found_difference = False
+        for index, element in enumerate(fi):
+            if (output[index] == 1) and (element <= self.positive_target):
+                difference = self.positive_target - element
+                self.errors[i, index] = difference
+                self.result[epoch, index, i] = element
+                found_difference = True
+            elif (output[index] == 0) and (element >= self.negative_target):
+                difference = element - self.negative_target
+                self.errors[i, index] = difference
+                self.result[epoch, index, i] = element
+                found_difference = True
+            else:
+                self.errors[i, index] = 0
+                if output[index] == 0:
+                    self.result[epoch, index, i] = self.negative_target
+                else:
+                    self.result[epoch, index, i] = self.positive_target
+        if found_difference:
+            return False
+        return True
+    
+
+    def check_convergence(self, i) -> bool:
+        fi = self.activation_function()
+        for index, element in enumerate(fi):
+            if element >= self.positive_target:
+                self.predictions[i, index] = 1   
+            elif element <= self.negative_target:
+                self.predictions[i, index] = 0
+            else:
+                self.predictions[i, index] = 2
+
+
+    def total_error(self, epoch) -> None:
+        total_error = np.sum(self.errors)
+        self.all_errors[epoch] = total_error
+        print("Total error:", total_error)
+
+
+    def fit(self, patterns: np.ndarray, outputs: np.ndarray, conductance_data: np.ndarray = None) -> None:
+        self.experimental_data(conductance_data)
+        self.shift()
+        self.conductance_init_rnd()
+        for epoch in range(1, self.epochs):
+            converged = True
+            for i in range(patterns.shape[0]):
+                self.calculate_logic_currents(patterns[i])
+                self.calculate_Delta_ij(outputs[i], patterns[i], i)
+                if not self.convergence_criterion(outputs[i], i, epoch):
+                    converged = False
+            if converged:
+                print(f"\nConvergence reached at epoch {epoch}")
+                print("Conductances:", self.conductances[0])
+                return epoch
+            self.update_weights(epoch)
+            self.total_error(epoch)
+            print("Epoch:", epoch)
+        print("Not converged")
+
+
+    def predict(self, patterns, outputs):
+        for i in range(patterns.shape[0]):
+            self.calculate_logic_currents(patterns[i], self.saved_correct_conductances)
+            self.check_convergence(i)
+            print("Pattern:", patterns[i], "Prediction:", self.predictions[i], "Expected result:", outputs[i])
+
