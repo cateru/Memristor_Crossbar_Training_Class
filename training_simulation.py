@@ -52,3 +52,4 @@ test_outputs = np.array([[0, 0],
 model = Memristor_Crossbar(beta = 20000, positive_target = 0.75, negative_target = -0.75, range = 0.001, multiplication_factor = 10)
 
 model.fit(train_set, train_outputs, conductance_data)
+model.predict(train_set, train_outputs)
