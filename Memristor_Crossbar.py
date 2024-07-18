@@ -37,7 +37,7 @@ class Memristor_Crossbar:
         self.conductance_data = []
         self.shifts = np.empty([4, 4])
         self.logic_currents = np.empty([2])
-        self.all_delta_ij = np.empty([16, 2, 4])
+        self.all_delta_ij = np.empty([self.training_set_width, 2, 4])
         self.conductances = np.empty([2, 4, 4])
         self.all_conductances = np.empty([self.epochs, 4, 4])
         self.saved_correct_conductances = np.empty([4, 4])
@@ -387,13 +387,3 @@ class Memristor_Crossbar:
             self.calculate_logic_currents(patterns[i], self.saved_correct_conductances)
             self.check_convergence(i)
             print("Pattern:", patterns[i], "Prediction:", self.predictions[i], "Expected result:", outputs[i])
-
-
-
-# commit message:
-# feat: Add the plotting methods and the one that saves the data
-# 
-# - Update necessary dependencies
-# - Add the methods that plot the synaptic weights, conductances, errors, results and final conductances in case of convergence
-# - Add the method that saves the data in a file
-# - Modify the fit method to account for the modifications
