@@ -8,7 +8,7 @@ from matplotlib.cm import get_cmap
 from datetime import datetime
 
 
-@dataclass(frozen=True)
+@dataclass
 class Memristor_Crossbar:
 
     beta: float 
@@ -74,14 +74,14 @@ class Memristor_Crossbar:
         return voltages_j
     
 
-    def calculate_hardware_currents(self, pattern : np.ndarray) -> np.ndarray:
+    def calculate_hardware_currents(self, pattern : np.ndarray, conductances : np.ndarray) -> np.ndarray:
         applied_voltages = self.voltage_array(pattern)
-        hardware_currents = applied_voltages.dot(self.conductances[0])
+        hardware_currents = applied_voltages.dot(conductances)
         return hardware_currents
-    
 
-    def calculate_logic_currents(self, pattern : np.ndarray) -> None:
-        currents_array = self.calculate_hardware_currents(pattern)
+
+    def calculate_logic_currents(self, pattern : np.ndarray, conductances : np.ndarray) -> None:
+        currents_array = self.calculate_hardware_currents(pattern, conductances)
         self.logic_currents = currents_array[::2] - currents_array[1::2]
 
 
@@ -138,6 +138,8 @@ class Memristor_Crossbar:
                     new_conductance = value[ind + 1]
                     self.conductances[1, i, j * 2 + 1] = new_index
                     self.conductances[0, i, j * 2 + 1] = (new_conductance + self.shifts[i, j * 2 + 1]) * self.multiplication_factor
+                else:
+                    continue
         self.all_conductances[epoch] = self.conductances[0] 
 
 
@@ -164,17 +166,6 @@ class Memristor_Crossbar:
         if found_difference:
             return False
         return True
-    
-
-    def check_convergence(self, i) -> bool:
-        fi = self.activation_function()
-        for index, element in enumerate(fi):
-            if element >= self.positive_target:
-                self.predictions[i, index] = 1   
-            elif element <= self.negative_target:
-                self.predictions[i, index] = 0
-            else:
-                self.predictions[i, index] = 2
 
 
     def total_error(self, epoch) -> None:
@@ -208,15 +199,15 @@ class Memristor_Crossbar:
         return fig, ax
 
 
-    def plot_conductances(self):
+    def plot_conductances(self, epochs):
         rows, cols = self.conductances[0].shape
         cmap = get_cmap('tab20')
         num_plots = rows * cols
         fig, axes = plt.subplots(rows, cols, figsize=(15, 10), sharex=True)
         for j in range(cols):
             for i in range(rows):
-                Wij = self.all_conductances[:, i, j]
-                pulses = np.arange(self.epochs)
+                Wij = self.all_conductances[:epochs, i, j]
+                pulses = np.arange(epochs)
                 ax = axes[i, j]
                 color = cmap((i * cols + j) % num_plots) 
                 ax.plot(pulses, Wij, 'o-', color=color, linewidth=2, label = f'Row = {i+1}\nColumn = {j+1}')
@@ -260,8 +251,11 @@ class Memristor_Crossbar:
         return fig, axes
 
 
-    def plot_error(self):
-        pulses = np.arange(self.epochs)
+    def plot_error(self, epochs):
+        pulses = np.arange(epochs+1)        
+        # pulses = pulses[1:]
+        errors = self.all_errors[1:epochs]
+        errors = np.append(errors, 0)
         fig, ax = plt.subplots(1, 1, figsize=(10, 3))
         ax.plot(pulses, self.all_errors, 'o-', linewidth=2)
         ax.set_xlabel('Epoch')
@@ -272,15 +266,15 @@ class Memristor_Crossbar:
         return fig
 
 
-    def plot_results(self, pattern : np.ndarray, output : np.ndarray):
-        pulses = np.arange(self.epochs)
+    def plot_results(self, pattern : np.ndarray, output : np.ndarray, epochs):
+        pulses = np.arange(epochs)
         rows, cols = self.result[0].shape
         cmap = get_cmap('tab20')
         num_plots = rows * cols
         fig, axes = plt.subplots(rows, cols, figsize=(17, 8), sharex=True)
         for j in range(cols):
             for i in range(rows):
-                results = self.result[:, i, j]
+                results = self.result[:epochs, i, j]
                 ax = axes[i, j]
                 color = cmap((i * cols + j) % num_plots) 
                 patt = pattern[j]
@@ -352,19 +346,22 @@ class Memristor_Crossbar:
         for epoch in range(1, self.epochs):
             converged = True
             for i in range(patterns.shape[0]):
-                self.calculate_logic_currents(patterns[i])
+                self.calculate_logic_currents(patterns[i], self.conductances[0])
                 self.calculate_Delta_ij(outputs[i], patterns[i], i)
                 if not self.convergence_criterion(outputs[i], i, epoch):
                     converged = False
             if converged:
                 print(f"\nConvergence reached at epoch {epoch}")
-                print("Conductances:", self.conductances[0])
-                self.save_data(base_filename = filename, converged = converged)
+                print("Conductances:", self.conductances[0])      
+                correct_conductances = (self.conductances[0] + self.shifts) * self.multiplication_factor       
+                self.saved_correct_conductances = correct_conductances
+                if save_data:
+                    self.save_data(base_filename = filename, converged = converged)
                 if plot:
-                    self.plot_conductances()
-                    self.plot_weights()
-                    self.plot_error()
-                    self.plot_results(patterns, outputs)
+                    self.plot_conductances(epoch)
+                    self.plot_weights(epoch)
+                    self.plot_error(epoch)
+                    self.plot_results(patterns, outputs, epoch)
                     self.plot_final_weights()
                 return epoch
             self.update_weights(epoch)
@@ -373,13 +370,24 @@ class Memristor_Crossbar:
         print("Not converged")
 
         if save_data:
-            self.save_data(base_filename = filename)
+            self.save_data(base_filename = filename, converged = converged)
 
         if plot:
-            self.plot_conductances()
-            self.plot_weights()
-            self.plot_error()
-            self.plot_results(patterns, outputs)
+            self.plot_conductances(epoch)
+            self.plot_weights(epoch)
+            self.plot_error(epoch)
+            self.plot_results(patterns, outputs, epoch)
+
+
+    def check_convergence(self, i) -> bool:
+        fi = self.activation_function()
+        for index, element in enumerate(fi):
+            if element >= self.positive_target:
+                self.predictions[i, index] = 1   
+            elif element <= self.negative_target:
+                self.predictions[i, index] = 0
+            else:
+                self.predictions[i, index] = 2
 
 
     def predict(self, patterns, outputs):
