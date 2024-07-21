@@ -16,7 +16,7 @@ class Test_Memristor_Crossbar:
         self.range = 0.001
         self.multiplication_factor = 10
         self.training_set_width = 6
-        self.epochs = 48
+        self.epochs = 5
         self.crossbar = Memristor_Crossbar(
             beta=self.beta,
             positive_target = self.positive_target,
@@ -77,7 +77,7 @@ class Test_Memristor_Crossbar:
     ])
     def test_calculate_hardware_currents(self, pattern, conductances, expected_currents):
         self.crossbar.conductances[0] = conductances
-        hardware_currents = self.crossbar.calculate_hardware_currents(pattern)
+        hardware_currents = self.crossbar.calculate_hardware_currents(pattern, conductances)
         np.testing.assert_array_almost_equal(hardware_currents, expected_currents)
 
     @pytest.mark.parametrize("pattern, conductances", [
@@ -86,8 +86,8 @@ class Test_Memristor_Crossbar:
     ])
     def test_calculate_logic_currents(self, pattern, conductances):
         self.crossbar.conductances[0] = conductances
-        self.crossbar.calculate_logic_currents(pattern)
-        expected_currents = self.crossbar.calculate_hardware_currents(pattern)
+        self.crossbar.calculate_logic_currents(pattern, conductances)
+        expected_currents = self.crossbar.calculate_hardware_currents(pattern, conductances)
         expected_logic_currents = expected_currents[::2] - expected_currents[1::2]
         np.testing.assert_array_almost_equal(self.crossbar.logic_currents, expected_logic_currents)
 
@@ -227,6 +227,88 @@ class Test_Memristor_Crossbar:
         full_path = os.path.join(date_dir, 'not_converged', filename)
         assert os.path.exists(full_path) == True
         shutil.rmtree(date_dir)
+
+    @pytest.mark.parametrize("conductance_data, patterns, outputs, expected_converged", [
+        (np.array([1.0, 1.5, 2.0, 2.5, 3.0]), 
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 1, 0], [1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 1, 0]]), 
+        np.array([[0, 1], [1, 0], [1, 0], [0, 1], [0, 1], [1, 0]]), 
+        False),
+        (np.array([1.0, 1.5, 2.0, 2.5, 3.0]), 
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 1, 0], [1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 1, 0]]), 
+        np.array([[0, 1], [1, 0], [1, 0], [0, 1], [0, 1], [1, 0]]), 
+        True),
+    ])
+    def test_fit(self, conductance_data, patterns, outputs, expected_converged):
+        self.crossbar.experimental_data = MagicMock()
+        self.crossbar.shift = MagicMock()
+        self.crossbar.conductance_init_rnd = MagicMock()
+        self.crossbar.calculate_Delta_ij = MagicMock()
+        self.crossbar.calculate_logic_currents = MagicMock()
+        self.crossbar.save_data = MagicMock()
+        self.crossbar.plot_conductances = MagicMock()
+        self.crossbar.plot_weights = MagicMock()
+        self.crossbar.plot_error = MagicMock()
+        self.crossbar.plot_results = MagicMock()
+        self.crossbar.plot_final_weights = MagicMock()
+        self.crossbar.update_weights = MagicMock()
+        self.crossbar.total_error = MagicMock()
+        self.crossbar.convergence_criterion = MagicMock(return_value = expected_converged)
+        self.crossbar.fit(patterns = patterns, outputs = outputs, plot = True, conductance_data = conductance_data)
+        self.crossbar.experimental_data.assert_called_once_with(conductance_data)
+        self.crossbar.shift.assert_called_once()
+        self.crossbar.conductance_init_rnd.assert_called_once()
+        self.crossbar.plot_conductances.assert_called_once()
+        self.crossbar.plot_weights.assert_called_once()
+        self.crossbar.plot_error.assert_called_once()
+        self.crossbar.plot_results.assert_called_once()        
+        self.crossbar.calculate_logic_currents.assert_called()
+        self.crossbar.calculate_Delta_ij.assert_called()
+        self.crossbar.convergence_criterion.assert_called()
+        if expected_converged:            
+            self.crossbar.plot_conductances.assert_called_once()
+            self.crossbar.plot_final_weights.assert_called_once()
+            self.crossbar.save_data.assert_not_called()
+        else: 
+            self.crossbar.update_weights.assert_called()
+            self.crossbar.total_error.assert_called()
+            self.crossbar.save_data.assert_not_called() 
+
+    @pytest.mark.parametrize("logic_currents, expected_predictions", [
+        (np.array([5e-4, -5e-4]),np.array([1, 0])),
+        (np.array([-5e-20, 5e-6]),np.array([2, 2])),
+    ])
+    def test_check_convergence(self, logic_currents, expected_predictions):
+        self.crossbar.logic_currents = logic_currents
+        self.crossbar.check_convergence(0)
+        np.testing.assert_array_equal(self.crossbar.predictions[0], expected_predictions)
+
+    @pytest.mark.parametrize("conductances, pattern, output, expected_output", [
+        (np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]), 
+         np.array([[0, 0, 0, 0],
+                     [0, 0, 1, 1],
+                     [0, 1, 0, 0],
+                     [0, 1, 0, 1],
+                     [0, 1, 1, 1],
+                     [1, 0, 0, 0],
+                     [1, 0, 1, 0],
+                     [1, 0, 1, 1],
+                     [1, 1, 0, 0],
+                     [1, 1, 1, 1]]), 
+        np.array([[0, 0],
+                    [0, 0],
+                    [1, 0],
+                    [0, 0],
+                    [1, 0],
+                    [0, 1],
+                    [0, 0],
+                    [0, 1],
+                    [0, 0],
+                    [0, 0]]), np.array([[2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2]]))
+    ])
+    def test_predict(self, conductances, pattern, output, expected_output):
+        self.crossbar.saved_correct_conductances = conductances
+        self.crossbar.predict(pattern, output)
+        np.testing.assert_array_equal(self.crossbar.predictions, expected_output)
 
 if __name__ == '__main__':
     pytest.main()
