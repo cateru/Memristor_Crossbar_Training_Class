@@ -79,12 +79,12 @@ Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a rand
 ## Project Structure 
 
 This project is divided into the following blocks: <br>
-1. The [experimental conductances](experimental_conductances.py) file, which processes the 'SP291D1NR100.dat' file and generates a NumPy array containing the conductance values. 
-2. The [Memristor Crossbar](Memristor_Crossbar.py) file, which defines the Memristor Crossbar class, encompassing all methods necessary for training and inference.
-3. The [Memristor Crossbar test](Memristor_Crossbar_test.py) file, which includes testing functions specifically designed for the Memristor Crossbar class.
-4. The [training simulation](training_simulation.py) file, which imports the experimental conductances and the Memristor Crossbar class, creates an instance of the class, and utilizes the fit and predict methods.
+1. The [experimental conductances](memristor_crossbar/experimental_conductances.py) file, which processes the 'SP291D1NR100.dat' file and generates a NumPy array containing the conductance values. 
+2. The [Memristor Crossbar](memristor_crossbar/Memristor_Crossbar.py) file, which defines the Memristor Crossbar class, encompassing all methods necessary for training and inference.
+3. The [Memristor Crossbar test](memristor_crossbar/Memristor_Crossbar_test.py) file, which includes testing functions specifically designed for the Memristor Crossbar class.
+4. The [training simulation](memristor_crossbar/training_simulation.py) file, which imports the experimental conductances and the Memristor Crossbar class, creates an instance of the class, and utilizes the fit and predict methods.
 
-To initiate a simulation, simply open the [training simulation](training_simulation.py) file. In this file, the experimental conductances and the Memristor Crossbar class are already imported, and an instance of the class is created. <br>
+To initiate a simulation, simply open the [training simulation](memristor_crossbar/training_simulation.py) file. In this file, the experimental conductances and the Memristor Crossbar class are already imported, and an instance of the class is created. <br>
 In this specific case, a set of optimal parameters has been selected for this dataset. The fit method is implemented using these parameters along with the provided experimental data. <br>
 To use different sets of conductances, simply select them when calling the fit method. Note that each time the simulation starts, it relies on the random generation of shifts. <br>
 There are two recommended ways to use the fit method, as demonstrated in the example:

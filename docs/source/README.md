@@ -55,7 +55,7 @@ In order to have more degrees of freedom during the training, the actual network
 $$
 I_i = I^+_i - I^-_i
 $$
-
+<br>
 $$
 W_{ij} = G^+_{ij} - G^-_{ij} 
 $$
@@ -65,11 +65,11 @@ To update the weights, is used **backpropagation** with the **Manhattan update r
 $$
 \delta_i = [f^g_i(n) - f_i(n)]\frac{df}{dI}\Bigg|_{I = I_i(n)} \quad \textit{(eq. 3)}
 $$
-
+<br>
 $$
 \Delta_{ij}(n) = \delta_i(n)V_j(n) \quad \textit{(eq. 4)}
 $$
-
+<br>
 $$
 \Delta W_{ij} = sgn\sum_{n=1}^{N} \Delta_{ij}(n) \quad \textit{(eq. 5)}
 $$
