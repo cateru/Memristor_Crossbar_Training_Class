@@ -1,0 +1,8 @@
+/* Change the background color of the function signature box */
+.highlight,
+.sig {
+    background-color: #68f4ac; /* Light green background */
+    padding: 10px;
+    border-radius: 4px;
+}
+

@@ -51,57 +51,85 @@ class Memristor_Crossbar:
         Initializes the conductance data by normalizing it to the first value.
 
         Args:
-            conductance_data (np.ndarray): The raw conductance data to be processed.
+            conductance_data (np.ndarray): The raw set of conductance data to be processed.
+                Example: np.array([5.0, 6.0, 7.0, 8.0])
 
         Returns:
             None
 
         Sets:
-            self.conductance_data (np.ndarray): The normalized conductance data, where the first value is subtracted from each element.
+            self.conductance_data (np.ndarray): The normalized conductance data,
+                where the first value is subtracted from each element.
+                Example: if conductance_data = np.array([5.0, 6.0, 7.0, 8.0]),
+                then self.conductance_data = np.array([0.0, 1.0, 2.0, 3.0])
         """
         raw_conductance_data = conductance_data
         first_value = raw_conductance_data[0]
         self.conductance_data = raw_conductance_data - first_value
 
-    def shift(self) -> None:
+    def shift_exp(self, seed=None) -> None:
         """
-        Generates random shifts for the conductance values and reshapes them into a 4x4 array.
+        Generates random shifts for the conductance values based on an exponential distribution
+        and reshapes them into a 4x4 array. If a seed is provided, ensures reproducibility by
+        setting the random seed.
 
         Args:
-            None
+            seed (int, optional): A seed value for the random number generator to ensure reproducibility.
 
         Returns:
             None
 
         Sets:
-            self.shifts (np.ndarray): A 4x4 array of random shifts, uniformly distributed around the center value of 0 within the range specified by self.range.
+            self.shifts (np.ndarray): A 4x4 array of random shifts generated using the exponential
+                                    distribution, centered around 0.
         """
+        if seed is not None:
+            np.random.seed(seed)
         center_value = 0
         num_elements = 16
-        range_width = self.range
-        rnd_shifts = np.random.uniform(
-            low=center_value - range_width / 2,
-            high=center_value + range_width / 2,
-            size=num_elements,
-        )
+        lambda_param = 55845
+        rnd_shifts = np.random.exponential(scale=1 / lambda_param, size=num_elements)
+        rnd_shifts -= np.mean(rnd_shifts) - center_value
         self.shifts = np.reshape(rnd_shifts, (4, 4))
 
-    def conductance_init_rnd(self) -> None:
+    def custom_shift(self, custom_shifts : np.ndarray) -> None:
         """
-        Initializes the conductance values with random shifts and a multiplication factor, and prints the initial conductances and epoch.
+        Sets custom shifts for the conductance values based on a user-defined 4x4 array.
 
         Args:
-            None
+            custom_shifts (np.ndarray): A 4x4 NumPy array containing user-defined shifts for the conductance values.
 
         Returns:
             None
 
         Sets:
-            self.conductances (np.ndarray): An array where the first element is the product of the normalized conductance data and shifts, multiplied by the multiplication factor. While the second element is the index zero, which indicates the initial set of conductances for the training.
-            self.all_conductances (np.ndarray): Similar to self.conductances, storing the same product in the first element.
+            self.shifts (np.ndarray): The shifts attribute is updated with the provided custom shifts.
+        """
+        self.shifts = custom_shifts
 
-        Prints:
-            The initial conductances and the epoch (0).
+    def conductance_init_rnd(self, stamp: bool = True) -> None:
+        """
+        Initializes the conductance values with random shifts and a multiplication factor.
+
+        Args:
+            stamp (bool): If True, prints the initial conductance values and the epoch number.
+                        This is useful for debugging or tracking the initialization process.
+                        Default is True.
+
+        Returns:
+            None
+
+        Sets:
+            self.conductances (np.ndarray): An array where the first element is the product
+                of the normalized conductance data and shifts, multiplied by the multiplication factor.
+            self.all_conductances (np.ndarray): Similar to self.conductances,
+                storing the same product in the first element.
+
+        Example: if self.conductance_data[0] = np.array([0.0, 1.0, 2.0, 3.0]),
+            self.shifts = np.array([[ 0.1, -0.5,  0.4, -0.3], [ 0.2, -0.1,  0.5, -0.4], [ 0.3, -0.2,  0.6, -0.5], [ 0.4, -0.3,  0.7, -0.6]])
+            and self.multiplication_factor = 2, then:
+            self.conductances[0] = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]])
+            self.conductances[1] = 0
         """
         self.conductances[0] = (
             self.conductance_data[0] + self.shifts
@@ -110,8 +138,9 @@ class Memristor_Crossbar:
         self.all_conductances[0] = (
             self.conductance_data[0] + self.shifts
         ) * self.multiplication_factor
-        print("Initial Conductances:", self.all_conductances[0])
-        print("Epoch:", 0)
+        if stamp:
+            print("Initial Conductances:", self.all_conductances[0])
+            print("Epoch:", 0)
 
     def voltage_array(self, pattern: np.ndarray, V0=-0.1, V1=0.1) -> np.ndarray:
         """
@@ -124,6 +153,11 @@ class Memristor_Crossbar:
 
         Returns:
             np.ndarray: An array of voltages corresponding to the pattern.
+
+        Example:
+            Given pattern = np.array([0, 1, 0, 1]) and default V0 = -0.1 and V1 = 0.1,
+            the resulting voltage array will be:
+            voltages_j = np.array([-0.1,  0.1, -0.1,  0.1])
         """
         voltages_j = np.array([V0 if i == 0 else V1 for i in pattern])
         return voltages_j
@@ -132,14 +166,20 @@ class Memristor_Crossbar:
         self, pattern: np.ndarray, conductances: np.ndarray
     ) -> np.ndarray:
         """
-        Calculates the hardware currents as a vector by matrix product based on applied voltages and conductances.
+        Calculates the hardware currents as the vector by matrix product of the given pattern and conductances.
 
         Args:
-            pattern (np.ndarray): The input pattern determining the applied voltages.
-            conductances (np.ndarray): The conductance values.
+            pattern (np.ndarray): The input pattern.
+            conductances (np.ndarray): Array of conductances.
 
         Returns:
             np.ndarray: The calculated hardware currents.
+
+        Example:
+            Given pattern = np.array([1, 0, 1, 1])
+            and conductances = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]]),
+            the resulting hardware currents will be:
+            hardware_currents = np.array([0.12, -0.18 , 0.24, -0.2])
         """
         applied_voltages = self.voltage_array(pattern)
         hardware_currents = applied_voltages.dot(conductances)
@@ -237,29 +277,37 @@ class Memristor_Crossbar:
         Delta_ij = np.outer(self.calculate_delta_i(output), self.voltage_array(pattern))
         self.all_delta_ij[i] = Delta_ij
 
-    def calculate_DeltaW_ij(self) -> np.ndarray:
+    def calculate_DeltaW_ij(self, stamp: bool = True) -> np.ndarray:
         """
         Calculates the DeltaW_ij values by summing and transposing the Delta_ij values.
 
         Args:
-            None
+            stamp (bool): If True, prints the calculated DeltaW_ij values.
+                        Useful for debugging or verifying the calculation process.
+                        Default is True.
 
         Returns:
             np.ndarray: The transposed array of DeltaW_ij values.
 
         Notes:
             The DeltaW_ij values are calculated by taking the sign of the sum of all Delta_ij values and transposing the result.
+            If stamp is True, the method prints the DeltaW_ij array.
         """
         deltaW_ij = np.sign(np.sum(self.all_delta_ij, axis=0))
         DeltaW_ij = np.transpose(deltaW_ij)
+        if stamp:
+            print("DeltaW_ij:", DeltaW_ij)
         return DeltaW_ij
 
-    def update_weights(self, epoch) -> None:
+    def update_weights(self, epoch, stamp: bool = True) -> None:
         """
         Updates the weights based on the DeltaW_ij values and stores the conductances for the given epoch.
 
         Args:
             epoch (int): The current epoch index.
+            stamp (bool): If True, prints the DeltaW_ij values during the weight update process.
+                        This is useful for monitoring the changes during each epoch.
+                        Default is True.
 
         Returns:
             None
@@ -269,10 +317,13 @@ class Memristor_Crossbar:
             self.all_conductances (np.ndarray): Stores the conductances for each epoch.
 
         Notes:
-            The function iterates through each element of DeltaW_ij and updates the conductance values accordingly. If DeltaW_ij[i, j] > 0 or < 0,
-            the conductance index and value are updated, applying shifts and a multiplication factor. If DeltaW_ij[i, j] == 0, no changes are made.
+            The function iterates through each element of DeltaW_ij and updates the conductance values accordingly:
+            - If DeltaW_ij[i, j] > 0 or < 0, the conductance index and value are updated, applying shifts and a multiplication factor.
+            - If DeltaW_ij[i, j] = 0, no changes are made.
+            The conductances are stored for the given epoch.
+            If stamp is True, DeltaW_ij values are printed to track the update process.
         """
-        DeltaW_ij = self.calculate_DeltaW_ij()
+        DeltaW_ij = self.calculate_DeltaW_ij(stamp)
         index_value_pairs = np.array(
             [[index, value] for index, value in enumerate(self.conductance_data)]
         )
@@ -344,12 +395,15 @@ class Memristor_Crossbar:
             return False
         return True
 
-    def total_error(self, epoch) -> None:
+    def total_error(self, epoch, stamp: bool = True) -> None:
         """
         Calculates and prints the total error for the given epoch.
 
         Args:
             epoch (int): The current epoch index.
+            stamp (bool): If True, prints the total error for the current epoch.
+                        This is useful for monitoring and debugging the error during training.
+                        Default is True.
 
         Returns:
             None
@@ -358,11 +412,12 @@ class Memristor_Crossbar:
             self.all_errors (np.ndarray): The total error for the current epoch.
 
         Notes:
-            The total error is the sum of all individual errors.
+            The total error is the sum of all individual errors. If stamp is True, the total error is printed for the current epoch.
         """
         total_error = np.sum(self.errors)
         self.all_errors[epoch] = total_error
-        print("Total error:", total_error)
+        if stamp:
+            print("Total error:", total_error)
 
     def plot_final_weights(self):
         """
@@ -394,10 +449,8 @@ class Memristor_Crossbar:
         ax.set_yticks(np.arange(len(categories)))
         ax.set_xticklabels(categories)
         ax.set_yticklabels(categories)
-        ax.ticklabel_format(style="sci", axis="z", scilimits=(0, 0))
         ax.set_xlabel("Neuron")
         ax.set_ylabel("Input")
-        ax.set_zlabel("Conductances")
         plt.show()
         return fig, ax
 
@@ -437,7 +490,6 @@ class Memristor_Crossbar:
                 ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
                 ax.tick_params(labelsize=12)
                 ax.legend(loc="lower right")
-                ax.grid()
         fig.text(0.5, 0.04, "Epoch", ha="center", va="center", fontsize=20)
         fig.text(
             0.04,
@@ -495,7 +547,6 @@ class Memristor_Crossbar:
                 ax.tick_params(labelsize=12)
                 ax.legend(loc="best", fontsize=10)
                 ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-                ax.grid()
         fig.text(0.5, 0.04, "Epoch", ha="center", va="center", fontsize=17)
         fig.text(
             0.04,
@@ -525,15 +576,15 @@ class Memristor_Crossbar:
         Notes:
             This method creates a line plot using matplotlib to visualize the evolution of the total error over the given epochs.
         """
-        pulses = np.arange(epochs + 1)
+        pulses = np.arange(epochs+1)
+        pulses = pulses[1:]
         errors = self.all_errors[1:epochs]
         errors = np.append(errors, 0)
         fig, ax = plt.subplots(1, 1, figsize=(10, 3))
-        ax.plot(pulses, self.all_errors, "o-", linewidth=2)
+        ax.plot(pulses, errors, "o-", linewidth=2)
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Total error")
         ax.set_title("Error evolution")
-        ax.grid()
         plt.show()
         return fig
 
@@ -582,7 +633,6 @@ class Memristor_Crossbar:
                 ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
                 ax.tick_params(labelsize=12)
                 ax.legend(loc="best")
-                ax.grid()
         fig.text(0.5, 0.04, "Epoch", ha="center", va="center", fontsize=20)
         fig.text(
             0.04,
@@ -659,23 +709,27 @@ class Memristor_Crossbar:
                 writer.writerow(row)
 
     def fit(
-        self,
-        patterns: np.ndarray,
-        outputs: np.ndarray,
-        plot: bool = True,
-        conductance_data: np.ndarray = None,
-        save_data: bool = False,
-        filename: str = "simulation",
-    ) -> None:
+            self,
+            patterns: np.ndarray,
+            outputs: np.ndarray,
+            conductance_data: np.ndarray = None,
+            custom_shifts: np.ndarray = None,
+            plot: bool = True,
+            stamp: bool = True,
+            save_data: bool = False,
+            filename: str = "simulation",
+        ) -> None:
         """
         Trains the model using the provided patterns and outputs.
 
         Args:
-            patterns (np.ndarray): The input patterns.
-            outputs (np.ndarray): The target outputs.
+            patterns (np.ndarray): The input patterns for training, where each row is a sample and each column represents a feature.
+            outputs (np.ndarray): The target outputs corresponding to the input patterns, structured similarly to the patterns array.
+            conductance_data (np.ndarray, optional): Experimental conductance data to use during training. Defaults to None.
+            custom_shifts (np.ndarray, optional): A 4x4 array of custom shifts to apply to the conductance values. If provided, these shifts will be used instead of randomly generated ones. Defaults to None.
             plot (bool, optional): Whether to generate plots of the results. Defaults to True.
-            conductance_data (np.ndarray, optional): Experimental conductance data to use. Defaults to None.
-            save_data (bool, optional): Whether to save the simulation data. Defaults to False.
+            stamp (bool, optional): Whether to print convergence and epoch information. Defaults to True.
+            save_data (bool, optional): Whether to save the simulation data to a file. Defaults to False.
             filename (str, optional): The base filename for saving data. Defaults to "simulation".
 
         Returns:
@@ -685,10 +739,14 @@ class Memristor_Crossbar:
             This method trains the model by iterating through the epochs and updating the weights until convergence is reached.
             If `plot` is True, various plots of the results are generated.
             If `save_data` is True, the simulation data is saved to a file.
+            If `stamp` is True, convergence and epoch information will be printed during training.
         """
         self.experimental_data(conductance_data)
-        self.shift()
-        self.conductance_init_rnd()
+        if custom_shifts is not None:
+            self.custom_shift(custom_shifts)
+        else:
+            self.shift_exp()
+        self.conductance_init_rnd(stamp)
         for epoch in range(1, self.epochs):
             converged = True
             for i in range(patterns.shape[0]):
@@ -697,8 +755,9 @@ class Memristor_Crossbar:
                 if not self.convergence_criterion(outputs[i], i, epoch):
                     converged = False
             if converged:
-                print(f"\nConvergence reached at epoch {epoch}")
-                print("Conductances:", self.conductances[0])
+                if stamp:
+                    print(f"\nConvergence reached at epoch {epoch}")
+                    print("Conductances:", self.conductances[0])
                 correct_conductances = (
                     self.conductances[0] + self.shifts
                 ) * self.multiplication_factor
@@ -712,10 +771,12 @@ class Memristor_Crossbar:
                     self.plot_results(patterns, outputs, epoch)
                     self.plot_final_weights()
                 return epoch
-            self.update_weights(epoch)
-            self.total_error(epoch)
-            print("Epoch:", epoch)
-        print("Not converged")
+            self.update_weights(epoch, stamp)
+            self.total_error(epoch, stamp)
+            if stamp:
+                print("Epoch:", epoch)
+        if stamp:
+            print("Not converged")
 
         if save_data:
             self.save_data(base_filename=filename, converged=converged)
@@ -750,7 +811,7 @@ class Memristor_Crossbar:
 
     def predict(self, patterns, outputs):
         """
-        Makes predictions based on the saved correct conductances and the provided patterns.
+        Makes predictions on the output based on the saved correct conductances and the provided patterns.
 
         Args:
             patterns (np.ndarray): The input patterns.

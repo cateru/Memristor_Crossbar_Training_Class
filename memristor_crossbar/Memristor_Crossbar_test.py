@@ -5,7 +5,7 @@ import copy
 import shutil
 from datetime import datetime
 from unittest.mock import patch, MagicMock
-from Memristor_Crossbar import Memristor_Crossbar
+from memristor_crossbar.Memristor_Crossbar import Memristor_Crossbar
 
 
 class Test_Memristor_Crossbar:
@@ -58,18 +58,43 @@ class Test_Memristor_Crossbar:
         self.crossbar.experimental_data(conductance_data)
         np.testing.assert_array_equal(self.crossbar.conductance_data, expected_data)
 
-    def test_shift(self):
+    def test_shift_exp(self):
         """
-        Test the shift method of the Memristor_Crossbar instance.
+        Test the shift_exp method of the Memristor_Crossbar instance with and without a seed.
 
         Asserts:
-            The shifts matrix has the correct shape and values within the expected range.
+            The shifts matrix has the correct shape and values centered around 0.
         """
-        self.crossbar.shift()
+        seed = 5
+        self.crossbar.shift_exp(seed=seed)
         assert self.crossbar.shifts.shape == (4, 4)
-        assert (self.crossbar.shifts >= -self.range / 2).all() and (
-            self.crossbar.shifts <= self.range / 2
-        ).all()
+        expected_shifts = np.array(
+            [
+                [-1.11912190e-05, 2.09486306e-05, -1.15393614e-05, 2.92330633e-05],
+                [-3.68447526e-06, 1.25519580e-06, 1.03151019e-05, -2.60211056e-06],
+                [-9.38094645e-06, -1.19631465e-05, -1.41786362e-05, 8.32839302e-06],
+                [-5.26160748e-06, -1.26000583e-05, 2.22713821e-05, -9.95020567e-06],
+            ]
+        )
+        np.testing.assert_array_almost_equal(self.crossbar.shifts, expected_shifts)
+        self.crossbar.shift_exp()
+        assert self.crossbar.shifts.shape == (4, 4)
+        assert np.isclose(np.mean(self.crossbar.shifts), 0, atol=1e-6)
+
+    def test_custom_shift(self):
+        """
+        Test the custom_shift method of the Memristor_Crossbar instance.
+
+        Asserts:
+            The custom shifts are correctly set in the Memristor_Crossbar instance.
+        """
+        custom_shifts = np.array([[0.1, 0.2, 0.3, 0.4],
+                                [0.5, 0.6, 0.7, 0.8],
+                                [0.9, 1.0, 1.1, 1.2],
+                                [1.3, 1.4, 1.5, 1.6]])
+        expected_shifts = custom_shifts
+        self.crossbar.custom_shift(custom_shifts)
+        np.testing.assert_array_equal(self.crossbar.shifts, expected_shifts)
 
     def test_conductance_init_rnd(self):
         """
@@ -362,7 +387,7 @@ class Test_Memristor_Crossbar:
         """
         conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
         self.crossbar.experimental_data(conductance_data)
-        self.crossbar.shift()
+        self.crossbar.shift_exp()
         self.crossbar.conductance_init_rnd()
         self.crossbar.update_weights(1)
         self.crossbar.save_data(base_filename="test_simulation", converged=False)
@@ -415,7 +440,7 @@ class Test_Memristor_Crossbar:
             All mocked methods are called correctly based on the parameters.
         """
         self.crossbar.experimental_data = MagicMock()
-        self.crossbar.shift = MagicMock()
+        self.crossbar.shift_exp = MagicMock()
         self.crossbar.conductance_init_rnd = MagicMock()
         self.crossbar.calculate_Delta_ij = MagicMock()
         self.crossbar.calculate_logic_currents = MagicMock()
@@ -427,7 +452,7 @@ class Test_Memristor_Crossbar:
         self.crossbar.plot_final_weights = MagicMock()
         self.crossbar.update_weights = MagicMock()
         self.crossbar.total_error = MagicMock()
-        self.crossbar.convergence_criterion = MagicMock(return_value=expected_converged)
+        self.crossbar.convergence_criterion = MagicMock(return_value = expected_converged)
         self.crossbar.fit(
             patterns=patterns,
             outputs=outputs,
@@ -435,7 +460,7 @@ class Test_Memristor_Crossbar:
             conductance_data=conductance_data,
         )
         self.crossbar.experimental_data.assert_called_once_with(conductance_data)
-        self.crossbar.shift.assert_called_once()
+        self.crossbar.shift_exp.assert_called_once()
         self.crossbar.conductance_init_rnd.assert_called_once()
         self.crossbar.plot_conductances.assert_called_once()
         self.crossbar.plot_weights.assert_called_once()
