@@ -2,10 +2,12 @@
 
 This project aims to demonstrate the possibility to obtain a **successful training simulation** of a <u>*single-layer perceptron*</u> classifier represented by a **4x4 Memristor crossbar** for Neuromorphic Computing applications, utilizing an experimental dataset to emulate the device's physical behavior.
 
+<center>
 <div style="text-align: center;">
     <img src="_static/sample3.jpeg" alt="Memristor Crossbar" width="300">
     <p>Figure 1: 4x4 Memristor crossbar mounted on the sample holder.</p>
 </div>
+</center>
 
 ## Neuromorphic Computing
 
@@ -19,6 +21,7 @@ It is so possible to build **integrated circuits** formed by memristors arranged
 In the present work, we take a 4x4 memristor crossbar circuit to which we associate a single-layer perceptron architechture with two neurons, capable of recognizing the set of patterns in *Fig2.b*. <br>
 In the physical picture, the 4-bit patterns are represented by 2 distinct values of <u>*voltage*</u> which represent the "0" and "1", the synaptic weights are associated with the conductances of the memristors while the neural network outputs are connected with the output <u>*currents*</u>. 
 
+<center>
 <div style="text-align: center; display: flex; justify-content: center;">
     <div style="margin: 10px;">
         <img src="_static/volt-pulse.png" alt="Voltage Pulse" width="500">
@@ -29,6 +32,7 @@ In the physical picture, the 4-bit patterns are represented by 2 distinct values
         <p>Figure 2.b: Training set of 4-bit patterns.</p>
     </div>
 </div>
+</center>
 
 ## Training Algorithm 
 
@@ -51,6 +55,7 @@ In order to have more degrees of freedom during the training, the actual network
 $$
 I_i = I^+_i - I^-_i
 $$
+
 $$
 W_{ij} = G^+_{ij} - G^-_{ij} 
 $$
@@ -60,9 +65,11 @@ To update the weights, is used **backpropagation** with the **Manhattan update r
 $$
 \delta_i = [f^g_i(n) - f_i(n)]\frac{df}{dI}\Bigg|_{I = I_i(n)} \quad \textit{(eq. 3)}
 $$
+
 $$
 \Delta_{ij}(n) = \delta_i(n)V_j(n) \quad \textit{(eq. 4)}
 $$
+
 $$
 \Delta W_{ij} = sgn\sum_{n=1}^{N} \Delta_{ij}(n) \quad \textit{(eq. 5)}
 $$
@@ -70,16 +77,20 @@ $$
 At this point, if $\Delta W_{ij} > 0$, synapse $W_{ij}$ is **potentiated** sending a <u>positive voltage pulse to $G^+_{ij}$</u>, on the contrary, if $\Delta W_{ij} < 0$, synapse $W_{ij}$ is **depressed** sending a <u>positive voltage pulse to $G^-_{ij}$</u>. <br>
 The parameters $\beta$ and $f^g_i(n)$ are numerical values that must be fine-tuned to achieve successful training. Specifically, $f^g_i(n)$ represents the **target value** for the activation function. If the pattern is to be recognized by the neuron as output '1', the activation function must **exceed** the target value $f^g_i(n)$. Conversely, if the pattern is to be classified as output '0', the activation function must **remain below** $f^g_i(n)$. 
 
+<center>
 <div style="text-align: center;">
     <img src="_static/activation.png" alt="Algorithm" width="700">
 </div>
+</center>
 
 The neural network is considered successfully trained when the activation functions for all patterns lie within their respective target ranges. Additionally, in this implementation, the target values for outputs '1' and '0' are assumed to be the same for the entire set of patterns. <br>
 All these steps are summarized in the following picture [2]:
 
+<center>
 <div style="text-align: center;">
     <img src="_static/tr_alg.png" alt="Algorithm" width="1000">
 </div>
+</center>
 
 
 ## Python Simulation
@@ -97,6 +108,7 @@ Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a *ran
 
 Below are examples of output graphs from a simulation that successfully converged after 18 epochs:
 
+<center>
 <div style="text-align: center;">
     <img src="_static/conds_18ep.png" alt="conductances" width="800">
 </div>
@@ -116,9 +128,11 @@ Below are examples of output graphs from a simulation that successfully converge
 <div style="text-align: center;">
     <img src="_static/3d.png" alt="3d" width="400">
 </div>
+</center>
 
 And here are examples from a simulation that did not converge after the default 48 epochs:
 
+<center>
 <div style="text-align: center;">
     <img src="_static/nonconv_conds.png" alt="conductances_nonconv" width="800">
 </div>
@@ -134,6 +148,7 @@ And here are examples from a simulation that did not converge after the default 
 <div style="text-align: center;">
     <img src="_static/nonconv_error.png" alt="error_nonconv" width="600">
 </div>
+</center>
 
 ## References
 
@@ -143,6 +158,5 @@ And here are examples from a simulation that did not converge after the default 
 
 **todo**: 
 1. System the readme including the explanation of the documentation run
-2. Commit and push the changes in the repository (all at once?)
 3. System the test of the logic_currents (make 2?)
 4. Verify that the tests are complete (test all errors)
