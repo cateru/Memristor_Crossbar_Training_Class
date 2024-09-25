@@ -48,18 +48,27 @@ $$I_i = \sum_{j=1}^{4} W_{ij}V_j \quad \textit{(eq. 2)}$$
 In order to have more degrees of freedom during the training, the actual network logic currents are calculated as the <u>differential output of two adjacent columns</u>, while the synaptic weights are represented by the <u>differential weigths of two adjacent columns</u>, thus forming 2 neurons containing 2 columns each:
 
 $$I_i = I^+_i - I^-_i$$
-
-$$W_{ij} = G^+_{ij} - G^-_{ij}$$
+![eq](https://latex.codecogs.com/svg.image?$$W_{ij}=G^&plus;_{ij}-G^-_{ij}$$)
 
 To update the weights, is used **backpropagation** with the **Manhattan update rule**:
 
 $$\delta_i = [f^g_i(n) - f_i(n)]\frac{df}{dI}\Bigg|_{I = I_i(n)} \quad \textit{(eq. 3)}$$
-
 $$\Delta_{ij}(n) = \delta_i(n)V_j(n) \quad \textit{(eq. 4)}$$
-
 $$\Delta W_{ij} = sgn\sum_{n=1}^{N} \Delta_{ij}(n) \quad \textit{(eq. 5)}$$
 
-At this point, if $\Delta W_{ij} > 0$, synapse $W_{ij}$ is **potentiated** sending a <u>positive voltage pulse to $G^+_{ij}$</u>, on the contrary, if $\Delta W_{ij} < 0$, synapse $W_{ij}$ is **depressed** sending a <u>positive voltage pulse to $G^-_{ij}$</u>. <br>
+At this point, if 
+$\Delta W_{ij} > 0$
+, synapse 
+$W_{ij}$
+ is **potentiated** sending a <u>positive voltage pulse to 
+ $G^+_{ij}$
+ </u>, on the contrary, if 
+ $\Delta W_{ij} < 0$
+ , synapse 
+ $W_{ij}$
+  is **depressed** sending a <u>positive voltage pulse to 
+  $G^-_{ij}$
+  </u>. <br>
 The parameters $\beta$ and $f^g_i(n)$ are numerical values that must be fine-tuned to achieve successful training. Specifically, $f^g_i(n)$ represents the **target value** for the activation function. If the pattern is to be recognized by the neuron as output '1', the activation function must **exceed** the target value $f^g_i(n)$. Conversely, if the pattern is to be classified as output '0', the activation function must **remain below** $f^g_i(n)$. 
 
 <center>
