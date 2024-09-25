@@ -92,7 +92,7 @@ class Memristor_Crossbar:
         rnd_shifts -= np.mean(rnd_shifts) - center_value
         self.shifts = np.reshape(rnd_shifts, (4, 4))
 
-    def custom_shift(self, custom_shifts : np.ndarray) -> None:
+    def custom_shift(self, custom_shifts: np.ndarray) -> None:
         """
         Sets custom shifts for the conductance values based on a user-defined 4x4 array.
 
@@ -576,7 +576,7 @@ class Memristor_Crossbar:
         Notes:
             This method creates a line plot using matplotlib to visualize the evolution of the total error over the given epochs.
         """
-        pulses = np.arange(epochs+1)
+        pulses = np.arange(epochs + 1)
         pulses = pulses[1:]
         errors = self.all_errors[1:epochs]
         errors = np.append(errors, 0)

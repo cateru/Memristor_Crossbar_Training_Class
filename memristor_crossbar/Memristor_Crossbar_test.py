@@ -60,10 +60,23 @@ class Test_Memristor_Crossbar:
 
     def test_shift_exp(self):
         """
-        Test the shift_exp method of the Memristor_Crossbar instance with and without a seed.
+        Test the shift_exp method of the Memristor_Crossbar instance without a seed.
 
         Asserts:
-            The shifts matrix has the correct shape and values centered around 0.
+            - The shifts matrix has the correct shape (4, 4).
+            - The mean of the shifts is approximately 0 (within tolerance).
+        """
+        self.crossbar.shift_exp()
+        assert self.crossbar.shifts.shape == (4, 4)
+        assert np.isclose(np.mean(self.crossbar.shifts), 0, atol=1e-6)
+
+    def test_shift_exp_seed(self):
+        """
+        Test the shift_exp method of the Memristor_Crossbar instance with a seed.
+
+        Asserts:
+            - The shifts matrix has the correct shape (4, 4).
+            - The shifts match the expected predefined values.
         """
         seed = 5
         self.crossbar.shift_exp(seed=seed)
@@ -77,9 +90,6 @@ class Test_Memristor_Crossbar:
             ]
         )
         np.testing.assert_array_almost_equal(self.crossbar.shifts, expected_shifts)
-        self.crossbar.shift_exp()
-        assert self.crossbar.shifts.shape == (4, 4)
-        assert np.isclose(np.mean(self.crossbar.shifts), 0, atol=1e-6)
 
     def test_custom_shift(self):
         """
@@ -88,20 +98,26 @@ class Test_Memristor_Crossbar:
         Asserts:
             The custom shifts are correctly set in the Memristor_Crossbar instance.
         """
-        custom_shifts = np.array([[0.1, 0.2, 0.3, 0.4],
-                                [0.5, 0.6, 0.7, 0.8],
-                                [0.9, 1.0, 1.1, 1.2],
-                                [1.3, 1.4, 1.5, 1.6]])
+        custom_shifts = np.array(
+            [
+                [0.1, 0.2, 0.3, 0.4],
+                [0.5, 0.6, 0.7, 0.8],
+                [0.9, 1.0, 1.1, 1.2],
+                [1.3, 1.4, 1.5, 1.6],
+            ]
+        )
         expected_shifts = custom_shifts
         self.crossbar.custom_shift(custom_shifts)
         np.testing.assert_array_equal(self.crossbar.shifts, expected_shifts)
 
     def test_conductance_init_rnd(self):
         """
-        Test the conductance_init_rnd method of the Memristor_Crossbar instance.
+        Test conductance_init_rnd with zero shifts.
+
+        Ensures that conductances are initialized to zero when no random shifts are applied.
 
         Asserts:
-            The conductances are correctly initialized based on the experimental data and shifts.
+            Conductances are set to zero, matching expected values.
         """
         conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
         shifts = np.array(
@@ -127,6 +143,33 @@ class Test_Memristor_Crossbar:
             self.crossbar.conductances[0], expected_conductances
         )
 
+    def test_conductance_init_rnd_seed(self):
+        """
+        Test conductance_init_rnd with a fixed seed.
+
+        Ensures that conductances are correctly initialized with random shifts
+        using a fixed seed for reproducibility.
+
+        Asserts:
+            Conductances match expected values based on the set seed.
+        """
+        conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
+        seed = 5
+        expected_conductances = np.array(
+            [
+                [-1.11912190e-04, 2.09486306e-04, -1.15393614e-04, 2.92330633e-04],
+                [-3.68447526e-05, 1.25519580e-05, 1.03151019e-04, -2.60211056e-05],
+                [-9.38094645e-05, -1.19631465e-04, -1.41786362e-04, 8.32839302e-05],
+                [-5.26160748e-05, -1.26000583e-04, 2.22713821e-04, -9.95020567e-05],
+            ]
+        )
+        self.crossbar.experimental_data(conductance_data)
+        self.crossbar.shift_exp(seed)
+        self.crossbar.conductance_init_rnd()
+        np.testing.assert_array_almost_equal(
+            self.crossbar.conductances[0], expected_conductances
+        )
+
     def test_voltage_array(self):
         """
         Test the voltage_array method of the Memristor_Crossbar instance.
@@ -144,18 +187,46 @@ class Test_Memristor_Crossbar:
         Test the calculate_hardware_currents method of the Memristor_Crossbar instance.
 
         Asserts:
-            The hardware currents are correctly calculated based on the input pattern and conductances.
+            The hardware currents are correctly calculated based on the voltages and conductances.
         """
-        pattern = np.array([0, 1, 0, 1])
+        pattern = np.array([1, 0, 1, 1])
         conductances = np.array(
-            [[10, 10, 10, 10], [10, 10, 10, 10], [10, 10, 10, 10], [10, 10, 10, 10]]
+            [
+                [0.2, -1.0, 0.8, -0.6],
+                [0.4, -0.2, 1.0, -0.8],
+                [0.6, -0.4, 1.2, -1.0],
+                [0.8, -0.6, 1.4, -1.2],
+            ]
         )
-        expected_currents = np.array([0.0, 0.0, 0.0, 0.0])
+        expected_currents = np.array([0.12, -0.18, 0.24, -0.2])
         self.crossbar.conductances[0] = conductances
         hardware_currents = self.crossbar.calculate_hardware_currents(
             pattern, conductances
         )
         np.testing.assert_array_almost_equal(hardware_currents, expected_currents)
+
+    def test_calculate_logic_currents(self):
+        """
+        Test the calculate_logic_currents method of the Memristor_Crossbar instance.
+
+        Args:
+            pattern (np.array): The input pattern for testing.
+            conductances (np.array): The conductance matrix used in the test.
+
+        Asserts:
+            The logic currents are accurately computed based on the input pattern and conductances,
+            expected to be [1, 2].
+        """
+        pattern = np.array([0, 0, 0, 1])
+        conductances = np.array(
+            [[10, 10, 10, 10], [10, 10, 10, 10], [10, 10, 10, 10], [20, 10, 30, 10]]
+        )
+        self.crossbar.conductances[0] = conductances
+        self.crossbar.calculate_logic_currents(pattern, conductances)
+        expected_logic_currents = np.array([1, 2])
+        np.testing.assert_array_almost_equal(
+            self.crossbar.logic_currents, expected_logic_currents
+        )
 
     @pytest.mark.parametrize(
         "pattern, conductances",
@@ -174,13 +245,13 @@ class Test_Memristor_Crossbar:
             ),
         ],
     )
-    def test_calculate_logic_currents(self, pattern, conductances):
+    def test_calculate_logic_currents_rnd(self, pattern, conductances):
         """
-        Test the calculate_logic_currents method of the Memristor_Crossbar instance.
+        Test the calculate_logic_currents method with various input patterns and conductance matrices.
 
         Args:
-            pattern (np.array): The input pattern.
-            conductances (np.array): The conductances matrix.
+            pattern (np.array): The input pattern used for testing.
+            conductances (np.array): The conductance matrix for the test.
 
         Asserts:
             The logic currents are correctly calculated from the input pattern and conductances.
@@ -266,7 +337,6 @@ class Test_Memristor_Crossbar:
         expected_Delta_ij = np.array(
             [[-1500, 1500, -1500, 1500], [1500, -1500, 1500, -1500]]
         )
-
         i = 0
         self.crossbar.logic_currents = logic_currents
         self.crossbar.calculate_Delta_ij(output, pattern, i)
@@ -398,7 +468,7 @@ class Test_Memristor_Crossbar:
         shutil.rmtree(date_dir)
 
     @pytest.mark.parametrize(
-        "conductance_data, patterns, outputs, expected_converged",
+        "conductance_data, patterns, outputs, expected_converged, save_data",
         [
             (
                 np.array([1.0, 1.5, 2.0, 2.5, 3.0]),
@@ -414,6 +484,7 @@ class Test_Memristor_Crossbar:
                 ),
                 np.array([[0, 1], [1, 0], [1, 0], [0, 1], [0, 1], [1, 0]]),
                 False,
+                True,
             ),
             (
                 np.array([1.0, 1.5, 2.0, 2.5, 3.0]),
@@ -429,10 +500,13 @@ class Test_Memristor_Crossbar:
                 ),
                 np.array([[0, 1], [1, 0], [1, 0], [0, 1], [0, 1], [1, 0]]),
                 True,
+                False,
             ),
         ],
     )
-    def test_fit(self, conductance_data, patterns, outputs, expected_converged):
+    def test_fit(
+        self, conductance_data, patterns, outputs, expected_converged, save_data
+    ):
         """
         Test the fit method of the Memristor_Crossbar instance.
 
@@ -452,12 +526,12 @@ class Test_Memristor_Crossbar:
         self.crossbar.plot_final_weights = MagicMock()
         self.crossbar.update_weights = MagicMock()
         self.crossbar.total_error = MagicMock()
-        self.crossbar.convergence_criterion = MagicMock(return_value = expected_converged)
+        self.crossbar.convergence_criterion = MagicMock(return_value=expected_converged)
         self.crossbar.fit(
             patterns=patterns,
             outputs=outputs,
-            plot=True,
             conductance_data=conductance_data,
+            save_data=save_data,
         )
         self.crossbar.experimental_data.assert_called_once_with(conductance_data)
         self.crossbar.shift_exp.assert_called_once()
@@ -473,10 +547,11 @@ class Test_Memristor_Crossbar:
             self.crossbar.plot_conductances.assert_called_once()
             self.crossbar.plot_final_weights.assert_called_once()
             self.crossbar.save_data.assert_not_called()
+            self.crossbar.total_error.assert_not_called()
         else:
             self.crossbar.update_weights.assert_called()
             self.crossbar.total_error.assert_called()
-            self.crossbar.save_data.assert_not_called()
+            self.crossbar.save_data.assert_called_once()
 
     @pytest.mark.parametrize(
         "logic_currents, expected_predictions",

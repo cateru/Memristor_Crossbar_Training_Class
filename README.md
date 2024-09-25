@@ -49,7 +49,7 @@ In order to have more degrees of freedom during the training, the actual network
 
 $$I_i = I^+_i - I^-_i$$
 
-$$W_{ij} = G^+_{ij} - G^-_{ij} $$
+$$W_{ij} = G^+_{ij} - G^-_{ij}$$
 
 To update the weights, is used **backpropagation** with the **Manhattan update rule**:
 
@@ -89,7 +89,7 @@ Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a rand
 
 ## Project Structure 
 
-This project is divided into the following blocks: <br>
+This project is divided into the following blocks which are contained in the [memristor_crossbar](memristor_crossbar/) folder: <br>
 1. The [experimental conductances](memristor_crossbar/experimental_conductances.py) file, which processes the 'SP291D1NR100.dat' file and generates a NumPy array containing the conductance values. 
 2. The [Memristor Crossbar](memristor_crossbar/Memristor_Crossbar.py) file, which defines the Memristor Crossbar class, encompassing all methods necessary for training and inference.
 3. The [Memristor Crossbar test](memristor_crossbar/Memristor_Crossbar_test.py) file, which includes testing functions specifically designed for the Memristor Crossbar class.
@@ -103,6 +103,18 @@ There are two recommended ways to use the fit method, as demonstrated in the exa
 2. Multiple Simulations: This method utilizes a for loop, disabling plots and prints while enabling data saving for the shifts. The data is automatically saved in two separate folders based on whether the simulation converged or not. 
 
 By using this approach, if the simulation converges, you can take the saved shifts and utilize the custom shift option in the fit method. This allows you to check convergence again while plotting the data. <br>
+
+The [memristor_crossbar](memristor_crossbar/) and [docs](docs/) directories contain the Sphinx Read the Docs documentation for the code. To view it, download both directories, navigate to the docs folder, and run the make html command from the terminal. This will generate the HTML documentation in the docs/build/ folder. You can then open the index.html file to view the documentation. A README is included, which is similar to this one and recommended to be read first. The documentation covers the Memristor_Crossbar class and the testing framework. <br>
+
+> **NB!** <br>
+> Directly running the code creates a folder named `dd/mm/yy` containing the results. 
+> To perform a single simulation, the user should comment out the last two lines of the `training_simulation.py` code.
+
+
+
+
+## Examples 
+
 Below are examples of output graphs from a simulation that successfully converged after 18 epochs:
 
 <center>

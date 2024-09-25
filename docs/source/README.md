@@ -154,9 +154,3 @@ And here are examples from a simulation that did not converge after the default 
 
 [[1]](https://doi.org/10.1002/aelm.202300887) Shumilin, A., Neha, P., Benini, M., Rakshit, R., Singh, M., Graziosi, P., ... & Riminucci, A. (2024). Glassy Synaptic Time Dynamics in Molecular La0. 7Sr0. 3MnO3/Gaq3/AlOx/Co Spintronic Crossbar Devices. Advanced Electronic Materials, 2300887. <br>
 [[2]](https://doi.org/10.1038/nature14441) Prezioso, M., Merrikh-Bayat, F., Hoskins, B. D., Adam, G. C., Likharev, K. K., & Strukov, D. B. (2015). Training and operation of an integrated neuromorphic network based on metal-oxide memristors. Nature, 521(7550), 61-64.
-
-
-**todo**: 
-1. System the readme including the explanation of the documentation run
-3. System the test of the logic_currents (make 2?)
-4. Verify that the tests are complete (test all errors)
