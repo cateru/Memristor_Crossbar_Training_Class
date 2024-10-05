@@ -79,7 +79,8 @@ class Test_Memristor_Crossbar:
             - The shifts match the expected predefined values.
         """
         seed = 5
-        self.crossbar.shift_exp(seed=seed)
+        np.random.seed(seed) 
+        self.crossbar.shift_exp() 
         assert self.crossbar.shifts.shape == (4, 4)
         expected_shifts = np.array(
             [
@@ -110,9 +111,9 @@ class Test_Memristor_Crossbar:
         self.crossbar.custom_shift(custom_shifts)
         np.testing.assert_array_equal(self.crossbar.shifts, expected_shifts)
 
-    def test_conductance_init_rnd(self):
+    def test_conductance_init(self):
         """
-        Test conductance_init_rnd with zero shifts.
+        Test conductance_init with zero shifts.
 
         Ensures that conductances are initialized to zero when no random shifts are applied.
 
@@ -138,14 +139,14 @@ class Test_Memristor_Crossbar:
         )
         self.crossbar.experimental_data(conductance_data)
         self.crossbar.shifts = shifts
-        self.crossbar.conductance_init_rnd()
+        self.crossbar.conductance_init()
         np.testing.assert_array_almost_equal(
             self.crossbar.conductances[0], expected_conductances
         )
 
-    def test_conductance_init_rnd_seed(self):
+    def test_conductance_init_seed(self):
         """
-        Test conductance_init_rnd with a fixed seed.
+        Test conductance_init with a fixed seed.
 
         Ensures that conductances are correctly initialized with random shifts
         using a fixed seed for reproducibility.
@@ -155,6 +156,7 @@ class Test_Memristor_Crossbar:
         """
         conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
         seed = 5
+        np.random.seed(seed) 
         expected_conductances = np.array(
             [
                 [-1.11912190e-04, 2.09486306e-04, -1.15393614e-04, 2.92330633e-04],
@@ -164,8 +166,8 @@ class Test_Memristor_Crossbar:
             ]
         )
         self.crossbar.experimental_data(conductance_data)
-        self.crossbar.shift_exp(seed)
-        self.crossbar.conductance_init_rnd()
+        self.crossbar.shift_exp()
+        self.crossbar.conductance_init()
         np.testing.assert_array_almost_equal(
             self.crossbar.conductances[0], expected_conductances
         )
@@ -458,7 +460,7 @@ class Test_Memristor_Crossbar:
         conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
         self.crossbar.experimental_data(conductance_data)
         self.crossbar.shift_exp()
-        self.crossbar.conductance_init_rnd()
+        self.crossbar.conductance_init()
         self.crossbar.update_weights(1)
         self.crossbar.save_data(base_filename="test_simulation", converged=False)
         filename = "test_simulation_not_converged_data.csv"
@@ -515,15 +517,10 @@ class Test_Memristor_Crossbar:
         """
         self.crossbar.experimental_data = MagicMock()
         self.crossbar.shift_exp = MagicMock()
-        self.crossbar.conductance_init_rnd = MagicMock()
+        self.crossbar.conductance_init = MagicMock()
         self.crossbar.calculate_Delta_ij = MagicMock()
         self.crossbar.calculate_logic_currents = MagicMock()
         self.crossbar.save_data = MagicMock()
-        self.crossbar.plot_conductances = MagicMock()
-        self.crossbar.plot_weights = MagicMock()
-        self.crossbar.plot_error = MagicMock()
-        self.crossbar.plot_results = MagicMock()
-        self.crossbar.plot_final_weights = MagicMock()
         self.crossbar.update_weights = MagicMock()
         self.crossbar.total_error = MagicMock()
         self.crossbar.convergence_criterion = MagicMock(return_value=expected_converged)
@@ -535,23 +532,56 @@ class Test_Memristor_Crossbar:
         )
         self.crossbar.experimental_data.assert_called_once_with(conductance_data)
         self.crossbar.shift_exp.assert_called_once()
-        self.crossbar.conductance_init_rnd.assert_called_once()
-        self.crossbar.plot_conductances.assert_called_once()
-        self.crossbar.plot_weights.assert_called_once()
-        self.crossbar.plot_error.assert_called_once()
-        self.crossbar.plot_results.assert_called_once()
+        self.crossbar.conductance_init.assert_called_once()
         self.crossbar.calculate_logic_currents.assert_called()
         self.crossbar.calculate_Delta_ij.assert_called()
         self.crossbar.convergence_criterion.assert_called()
         if expected_converged:
-            self.crossbar.plot_conductances.assert_called_once()
-            self.crossbar.plot_final_weights.assert_called_once()
             self.crossbar.save_data.assert_not_called()
             self.crossbar.total_error.assert_not_called()
         else:
             self.crossbar.update_weights.assert_called()
             self.crossbar.total_error.assert_called()
             self.crossbar.save_data.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "epoch, patterns, outputs, converged",
+        [
+            (5, 
+            np.array([[0, 0, 0, 1], 
+                    [0, 1, 1, 0]]), 
+            np.array([[1, 0], 
+                    [0, 1]]), 
+            True),
+            (10, 
+            np.array([[1, 0, 1, 0], 
+                    [1, 1, 0, 1]]), 
+            np.array([[0, 1], 
+                    [1, 0]]), 
+            False),
+        ],
+    )
+    def test_visualize_graphs(self, epoch, patterns, outputs, converged):
+        """
+        Test the visualize_graphs method of the Memristor_Crossbar instance.
+
+        Asserts:
+            The appropriate plotting methods are called based on the convergence status.
+        """
+        self.crossbar.plot_conductances = MagicMock()
+        self.crossbar.plot_weights = MagicMock()
+        self.crossbar.plot_error = MagicMock()
+        self.crossbar.plot_results = MagicMock()
+        self.crossbar.plot_final_weights = MagicMock()
+        self.crossbar.visualize_graphs(epoch, patterns, outputs, converged)
+        self.crossbar.plot_conductances.assert_called_once_with(epoch)
+        self.crossbar.plot_weights.assert_called_once_with(epoch)
+        self.crossbar.plot_error.assert_called_once_with(epoch)
+        self.crossbar.plot_results.assert_called_once_with(patterns, outputs, epoch)
+        if converged:
+            self.crossbar.plot_final_weights.assert_called_once()
+        else:
+            self.crossbar.plot_final_weights.assert_not_called()
 
     @pytest.mark.parametrize(
         "logic_currents, expected_predictions",
