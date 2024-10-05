@@ -6,6 +6,7 @@ import matplotlib.ticker as ticker
 from dataclasses import dataclass
 from matplotlib.cm import get_cmap
 from datetime import datetime
+import logging
 
 
 @dataclass
@@ -18,6 +19,9 @@ class Memristor_Crossbar:
     multiplication_factor: int
     training_set_width: int = 6
     epochs: int = 48
+    number_of_neurons: int = 2
+    number_of_rows: int = 4
+    number_of_columns: int = 4
 
     test_set_width: int = 16 - training_set_width
     conductance_data: np.ndarray = None
@@ -35,16 +39,16 @@ class Memristor_Crossbar:
     def __post_init__(self):
 
         self.conductance_data = []
-        self.shifts = np.empty([4, 4])
-        self.logic_currents = np.empty([2])
-        self.all_delta_ij = np.empty([self.training_set_width, 2, 4])
-        self.conductances = np.empty([2, 4, 4])
-        self.all_conductances = np.empty([self.epochs, 4, 4])
-        self.saved_correct_conductances = np.empty([4, 4])
-        self.errors = np.empty([self.training_set_width, 2])
+        self.shifts = np.empty([self.number_of_rows, self.number_of_columns])
+        self.logic_currents = np.empty([self.number_of_neurons])
+        self.all_delta_ij = np.empty([self.training_set_width, self.number_of_neurons, self.number_of_rows])
+        self.conductances = np.empty([self.number_of_neurons, self.number_of_rows, self.number_of_columns])
+        self.all_conductances = np.empty([self.epochs, self.number_of_rows, self.number_of_columns])
+        self.saved_correct_conductances = np.empty([self.number_of_rows, self.number_of_columns])
+        self.errors = np.empty([self.training_set_width, self.number_of_neurons])
         self.all_errors = np.empty([self.epochs])
-        self.result = np.empty([self.epochs, 2, self.training_set_width])
-        self.predictions = np.empty([self.test_set_width, 2])
+        self.result = np.empty([self.epochs, self.number_of_neurons, self.training_set_width])
+        self.predictions = np.empty([self.test_set_width, self.number_of_neurons])
 
     def experimental_data(self, conductance_data: np.ndarray):
         """
@@ -67,14 +71,10 @@ class Memristor_Crossbar:
         first_value = raw_conductance_data[0]
         self.conductance_data = raw_conductance_data - first_value
 
-    def shift_exp(self, seed=None) -> None:
+    def shift_exp(self) -> None:
         """
         Generates random shifts for the conductance values based on an exponential distribution
-        and reshapes them into a 4x4 array. If a seed is provided, ensures reproducibility by
-        setting the random seed.
-
-        Args:
-            seed (int, optional): A seed value for the random number generator to ensure reproducibility.
+        and reshapes them into a 4x4 array.
 
         Returns:
             None
@@ -83,8 +83,6 @@ class Memristor_Crossbar:
             self.shifts (np.ndarray): A 4x4 array of random shifts generated using the exponential
                                     distribution, centered around 0.
         """
-        if seed is not None:
-            np.random.seed(seed)
         center_value = 0
         num_elements = 16
         lambda_param = 55845
@@ -107,9 +105,13 @@ class Memristor_Crossbar:
         """
         self.shifts = custom_shifts
 
-    def conductance_init_rnd(self, stamp: bool = True) -> None:
+    def conductance_init(self) -> None:
         """
         Initializes the conductance values with random shifts and a multiplication factor.
+
+        This method computes the initial conductance values by applying random shifts to the 
+        normalized conductance data and multiplying by a specified multiplication factor. 
+        It also logs the initialized conductance values and the epoch number.
 
         Args:
             stamp (bool): If True, prints the initial conductance values and the epoch number.
@@ -130,6 +132,12 @@ class Memristor_Crossbar:
             and self.multiplication_factor = 2, then:
             self.conductances[0] = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]])
             self.conductances[1] = 0
+
+        Logging:
+            This method logs the initialized conductances and the epoch number.
+            For example:
+            - "Initial Conductances: [0.2 -1.0 0.8 -0.6 ...]"
+            - "Epoch: 0"
         """
         self.conductances[0] = (
             self.conductance_data[0] + self.shifts
@@ -138,9 +146,8 @@ class Memristor_Crossbar:
         self.all_conductances[0] = (
             self.conductance_data[0] + self.shifts
         ) * self.multiplication_factor
-        if stamp:
-            print("Initial Conductances:", self.all_conductances[0])
-            print("Epoch:", 0)
+        logging.info(f"Initial Conductances: {self.all_conductances[0]}")
+        logging.info("Epoch: 0")
 
     def voltage_array(self, pattern: np.ndarray, V0=-0.1, V1=0.1) -> np.ndarray:
         """
@@ -232,31 +239,33 @@ class Memristor_Crossbar:
 
     def calculate_delta_i(self, output: np.ndarray) -> np.ndarray:
         """
-        Calculates the delta values for each output based on the activation function and its derivative.
+        Computes the delta values for a given output using the activation function and its derivative.
+
+        This function uses `np.where` to assign the positive or negative target values 
+        based on the given output, and calculates the delta values using the activation 
+        function and its derivative.
 
         Args:
-            output (np.ndarray): The target output values.
+            output (numpy.ndarray): A 1D array of target outputs, where each element is 
+                either 1 (positive target) or 0 (negative target).
 
         Returns:
-            np.ndarray: An array containing the delta values for each output.
+            numpy.ndarray: A 1D array of delta values, calculated using the formula:
+                delta = (target_value - activation) * activation_derivative.
+        
+        Example:
+            Given an output array where 1 represents the positive target and 0 
+            represents the negative target:
 
-        Notes:
-            The delta values are calculated as follows:
-            - If the target output is 1, delta is calculated using the positive target.
-            - If the target output is 0, delta is calculated using the negative target.
+            >>> output = np.array([1, 0, 1, 0, 1])
+            >>> calculate_delta_i(output)
+            array([delta_value_1, delta_value_2, ..., delta_value_n])
         """
-        delta_i = np.empty([2])
-        for index, target_output in enumerate(output):
-            if target_output == 1:
-                delta = (
-                    self.positive_target - self.activation_function()[index]
-                ) * self.activation_function_derivative()[index]
-                delta_i[index] = delta
-            elif target_output == 0:
-                delta = (
-                    self.negative_target - self.activation_function()[index]
-                ) * self.activation_function_derivative()[index]
-                delta_i[index] = delta
+        activation = self.activation_function()
+        activation_derivative = self.activation_function_derivative()
+        target_values = np.where(output == 1, self.positive_target, self.negative_target)
+        delta_i = (target_values - activation) * activation_derivative
+
         return delta_i
 
     def calculate_Delta_ij(self, output: np.ndarray, pattern: np.ndarray, i) -> None:
@@ -277,9 +286,10 @@ class Memristor_Crossbar:
         Delta_ij = np.outer(self.calculate_delta_i(output), self.voltage_array(pattern))
         self.all_delta_ij[i] = Delta_ij
 
-    def calculate_DeltaW_ij(self, stamp: bool = True) -> np.ndarray:
+    def calculate_DeltaW_ij(self) -> np.ndarray:
         """
         Calculates the DeltaW_ij values by summing and transposing the Delta_ij values.
+        It also logs the Delta_ij value.
 
         Args:
             stamp (bool): If True, prints the calculated DeltaW_ij values.
@@ -295,11 +305,10 @@ class Memristor_Crossbar:
         """
         deltaW_ij = np.sign(np.sum(self.all_delta_ij, axis=0))
         DeltaW_ij = np.transpose(deltaW_ij)
-        if stamp:
-            print("DeltaW_ij:", DeltaW_ij)
+        logging.info(f"DeltaW_ij: {DeltaW_ij}")
         return DeltaW_ij
 
-    def update_weights(self, epoch, stamp: bool = True) -> None:
+    def update_weights(self, epoch) -> None:
         """
         Updates the weights based on the DeltaW_ij values and stores the conductances for the given epoch.
 
@@ -321,9 +330,8 @@ class Memristor_Crossbar:
             - If DeltaW_ij[i, j] > 0 or < 0, the conductance index and value are updated, applying shifts and a multiplication factor.
             - If DeltaW_ij[i, j] = 0, no changes are made.
             The conductances are stored for the given epoch.
-            If stamp is True, DeltaW_ij values are printed to track the update process.
         """
-        DeltaW_ij = self.calculate_DeltaW_ij(stamp)
+        DeltaW_ij = self.calculate_DeltaW_ij()
         index_value_pairs = np.array(
             [[index, value] for index, value in enumerate(self.conductance_data)]
         )
@@ -332,25 +340,17 @@ class Memristor_Crossbar:
         rows, cols = DeltaW_ij.shape
         for j in range(cols):
             for i in range(rows):
-                if DeltaW_ij[i, j] > 0:
-                    ind = self.conductances[1, i, j * 2].astype(int)
-                    new_index = index[ind + 1]
-                    new_conductance = value[ind + 1]
-                    self.conductances[1, i, j * 2] = new_index
-                    self.conductances[0, i, j * 2] = (
-                        new_conductance + self.shifts[i, j * 2]
-                    ) * self.multiplication_factor
-                elif DeltaW_ij[i, j] < 0:
-                    ind = self.conductances[1, i, j * 2 + 1].astype(int)
-                    new_index = index[ind + 1]
-                    new_conductance = value[ind + 1]
-                    self.conductances[1, i, j * 2 + 1] = new_index
-                    self.conductances[0, i, j * 2 + 1] = (
-                        new_conductance + self.shifts[i, j * 2 + 1]
-                    ) * self.multiplication_factor
-                else:
+                if DeltaW_ij[i, j] == 0:
                     continue
-        self.all_conductances[epoch] = self.conductances[0]
+                adjustment = 0 if DeltaW_ij[i, j] > 0 else 1
+                ind = self.conductances[1, i, j * 2 + adjustment].astype(int)
+                new_index = index[ind + 1]
+                new_conductance = value[ind + 1]
+                self.conductances[1, i, j * 2 + adjustment] = new_index
+                self.conductances[0, i, j * 2 + adjustment] = (
+                    new_conductance + self.shifts[i, j * 2 + adjustment]
+                ) * self.multiplication_factor
+        self.all_conductances[epoch] = self.conductances[0]         
 
     def convergence_criterion(self, output: np.ndarray, i, epoch) -> bool:
         """
@@ -367,37 +367,21 @@ class Memristor_Crossbar:
         Sets:
             self.errors (np.ndarray): The calculated errors for the current pattern.
             self.result (np.ndarray): The activation values for the current epoch and pattern.
-
-        Notes:
-            The function checks if the activation values are within the target range.
-            If not, it calculates the errors and updates the result array.
         """
         fi = self.activation_function()
-        found_difference = False
-        for index, element in enumerate(fi):
-            if (output[index] == 1) and (element <= self.positive_target):
-                difference = self.positive_target - element
-                self.errors[i, index] = difference
-                self.result[epoch, index, i] = element
-                found_difference = True
-            elif (output[index] == 0) and (element >= self.negative_target):
-                difference = element - self.negative_target
-                self.errors[i, index] = difference
-                self.result[epoch, index, i] = element
-                found_difference = True
-            else:
-                self.errors[i, index] = 0
-                if output[index] == 0:
-                    self.result[epoch, index, i] = self.negative_target
-                else:
-                    self.result[epoch, index, i] = self.positive_target
-        if found_difference:
-            return False
-        return True
+        positive_diff = np.where((output == 1) & (fi <= self.positive_target), self.positive_target - fi, 0)
+        negative_diff = np.where((output == 0) & (fi >= self.negative_target), fi - self.negative_target, 0)
+        self.errors[i] = positive_diff + negative_diff
+        self.result[epoch, :, i] = np.where(output == 1, 
+                                            np.minimum(fi, self.positive_target), 
+                                            np.maximum(fi, self.negative_target))
+        found_difference = np.any(positive_diff > 0) or np.any(negative_diff > 0)
+        return not found_difference
 
-    def total_error(self, epoch, stamp: bool = True) -> None:
+    def total_error(self, epoch) -> None:
         """
         Calculates and prints the total error for the given epoch.
+        It also logs the Total error value.
 
         Args:
             epoch (int): The current epoch index.
@@ -416,8 +400,8 @@ class Memristor_Crossbar:
         """
         total_error = np.sum(self.errors)
         self.all_errors[epoch] = total_error
-        if stamp:
-            print("Total error:", total_error)
+        logging.info(f"Total error: {total_error}")
+        
 
     def plot_final_weights(self):
         """
@@ -666,17 +650,14 @@ class Memristor_Crossbar:
             and non-converged simulations are created as needed.
         """
         current_date = datetime.now().strftime("%d-%m-%Y")
-        if not os.path.exists(current_date):
-            os.makedirs(current_date)
+
+        os.makedirs(current_date)
 
         converged_dir = os.path.join(current_date, "converged")
         not_converged_dir = os.path.join(current_date, "not_converged")
 
-        if not os.path.exists(converged_dir):
-            os.makedirs(converged_dir)
-
-        if not os.path.exists(not_converged_dir):
-            os.makedirs(not_converged_dir)
+        os.makedirs(converged_dir)
+        os.makedirs(not_converged_dir)
 
         if converged:
             filename = f"{base_filename}_converged_data.csv"
@@ -714,21 +695,19 @@ class Memristor_Crossbar:
             outputs: np.ndarray,
             conductance_data: np.ndarray = None,
             custom_shifts: np.ndarray = None,
-            plot: bool = True,
-            stamp: bool = True,
             save_data: bool = False,
             filename: str = "simulation",
         ) -> None:
         """
         Trains the model using the provided patterns and outputs.
+        This method iteratively updates the model weights based on the training patterns and target outputs until convergence is achieved. 
+        It logs key events during the training process, including convergence status and conductance values.
 
         Args:
             patterns (np.ndarray): The input patterns for training, where each row is a sample and each column represents a feature.
             outputs (np.ndarray): The target outputs corresponding to the input patterns, structured similarly to the patterns array.
             conductance_data (np.ndarray, optional): Experimental conductance data to use during training. Defaults to None.
             custom_shifts (np.ndarray, optional): A 4x4 array of custom shifts to apply to the conductance values. If provided, these shifts will be used instead of randomly generated ones. Defaults to None.
-            plot (bool, optional): Whether to generate plots of the results. Defaults to True.
-            stamp (bool, optional): Whether to print convergence and epoch information. Defaults to True.
             save_data (bool, optional): Whether to save the simulation data to a file. Defaults to False.
             filename (str, optional): The base filename for saving data. Defaults to "simulation".
 
@@ -737,55 +716,64 @@ class Memristor_Crossbar:
 
         Notes:
             This method trains the model by iterating through the epochs and updating the weights until convergence is reached.
-            If `plot` is True, various plots of the results are generated.
             If `save_data` is True, the simulation data is saved to a file.
-            If `stamp` is True, convergence and epoch information will be printed during training.
+
+        Logging:
+            The method logs:
+            - The epoch at which convergence is reached, along with the final conductance values.
+            - The epoch number for each iteration.
+            - A message indicating that the training did not converge if applicable.
         """
         self.experimental_data(conductance_data)
         if custom_shifts is not None:
             self.custom_shift(custom_shifts)
         else:
             self.shift_exp()
-        self.conductance_init_rnd(stamp)
+        self.conductance_init()
         for epoch in range(1, self.epochs):
             converged = True
             for i in range(patterns.shape[0]):
                 self.calculate_logic_currents(patterns[i], self.conductances[0])
                 self.calculate_Delta_ij(outputs[i], patterns[i], i)
                 if not self.convergence_criterion(outputs[i], i, epoch):
-                    converged = False
+                    converged = False            
             if converged:
-                if stamp:
-                    print(f"\nConvergence reached at epoch {epoch}")
-                    print("Conductances:", self.conductances[0])
+                logging.info(f"\nConvergence reached at epoch {epoch}")
+                logging.info(f"Conductances: {self.conductances[0]}")
                 correct_conductances = (
                     self.conductances[0] + self.shifts
                 ) * self.multiplication_factor
-                self.saved_correct_conductances = correct_conductances
+                self.saved_correct_conductances = correct_conductances                
                 if save_data:
                     self.save_data(base_filename=filename, converged=converged)
-                if plot:
-                    self.plot_conductances(epoch)
-                    self.plot_weights(epoch)
-                    self.plot_error(epoch)
-                    self.plot_results(patterns, outputs, epoch)
-                    self.plot_final_weights()
-                return epoch
-            self.update_weights(epoch, stamp)
-            self.total_error(epoch, stamp)
-            if stamp:
-                print("Epoch:", epoch)
-        if stamp:
-            print("Not converged")
-
+                return epoch            
+            self.update_weights(epoch)
+            self.total_error(epoch)
+            logging.info(f"Epoch: {epoch}")
+        logging.info("Not converged")
         if save_data:
             self.save_data(base_filename=filename, converged=converged)
+        return epoch 
 
-        if plot:
-            self.plot_conductances(epoch)
-            self.plot_weights(epoch)
-            self.plot_error(epoch)
-            self.plot_results(patterns, outputs, epoch)
+    def visualize_graphs(self, epoch: int, patterns: np.ndarray, outputs: np.ndarray, converged: bool) -> None:
+        """
+        Generates plots for the results after fitting the model.
+
+        Args:
+            epoch (int): The epoch at which convergence was reached.
+            patterns (np.ndarray): The input patterns used for training.
+            outputs (np.ndarray): The target outputs corresponding to the input patterns.
+            converged (bool): Indicates whether the simulation converged.
+
+        Returns:
+            None
+        """
+        self.plot_conductances(epoch)
+        self.plot_weights(epoch)
+        self.plot_error(epoch)
+        self.plot_results(patterns, outputs, epoch)
+        if converged:
+            self.plot_final_weights()
 
     def check_convergence(self, i) -> bool:
         """
@@ -801,13 +789,11 @@ class Memristor_Crossbar:
             This method updates the predictions array based on the comparison of the activation function results with the positive and negative targets.
         """
         fi = self.activation_function()
-        for index, element in enumerate(fi):
-            if element >= self.positive_target:
-                self.predictions[i, index] = 1
-            elif element <= self.negative_target:
-                self.predictions[i, index] = 0
-            else:
-                self.predictions[i, index] = 2
+        self.predictions[i] = np.select(
+            [fi >= self.positive_target, fi <= self.negative_target],
+            [1, 0],
+            default=2
+        )
 
     def predict(self, patterns, outputs):
         """
