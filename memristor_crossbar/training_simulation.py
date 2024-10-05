@@ -1,6 +1,26 @@
 import numpy as np
+import logging
 from experimental_conductances import conductance_data
 from Memristor_Crossbar import Memristor_Crossbar
+
+# Configures the logging module for the application.
+# This setup defines the log level and format for log messages.
+# 
+# Args:
+#     level (int): The logging level, set to `logging.INFO` in this case.
+#                  This means that all log messages at this level and above 
+#                  (i.e., INFO, WARNING, ERROR, and CRITICAL) will be output.
+#     format (str): A string that specifies the format of the log messages.
+#                   In this case, the format includes:
+#                   - `%(asctime)s`: The timestamp when the log message is created.
+#                   - `%(levelname)s`: The severity level of the log message (e.g., INFO, WARNING).
+#                   - `%(message)s`: The actual log message.
+# 
+# Example:
+#     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+#     # This will log messages like:
+#     # 2024-10-05 12:34:56,789 - INFO - This is an info message.
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 # Define training dataset
@@ -69,8 +89,15 @@ model = Memristor_Crossbar(beta = 20000, positive_target = 0.8, negative_target 
 # 
 # Fits the Memristor_Crossbar model to the training data. This involves training the model using
 # the provided training samples (`train_set`) and their corresponding outputs (`train_outputs`).
-# The `conductance_data` is used in the training process.
-model.fit(train_set, train_outputs, conductance_data)
+# The `conductance_data` is used in the training process.# 
+# During training, key events are logged.# 
+# After fitting the model, the results are plotted.
+# The `plot_results` method visualizes the results of the training, using the epoch number,
+# training samples, and their corresponding outputs.
+epoch = model.fit(train_set, train_outputs, conductance_data)
+converged = (epoch < model.epochs)
+model.visualize_graphs(epoch, train_set, train_outputs, converged)
+
 
 # Predict using the model
 # 
@@ -81,9 +108,11 @@ model.predict(test_set, test_outputs)
 # Iterative training
 # The model is trained multiple times (100 iterations) to refine its performance.
 # Each training run fits the model using the training data and saves the results to files.
-# - `plot`: Boolean indicating whether to plot results (set to False here).
-# - `stamp`: Boolean indicating whether to include timestamps (set to False here).
+# 
 # - `save_data`: Boolean indicating whether to save the training data (set to True here).
 # - `filename`: Template for naming the output files (here, it includes the iteration number).
+# 
+# Key events during training are logged but the general ones are disabled.
+logging.disable(logging.CRITICAL)
 for i in range(100):
-    model.fit(train_set, train_outputs, conductance_data, plot = False, stamp = False, save_data = True, filename = f"test_10_{i}")
+    model.fit(train_set, train_outputs, conductance_data, save_data = True, filename = f"test_10_{i}")
