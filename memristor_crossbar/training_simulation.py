@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from experimental_conductances import conductance_data
+from experimental_conductances import load_conductance_data
 from Memristor_Crossbar import Memristor_Crossbar
 
 # Configures the logging module for the application.
@@ -21,6 +21,25 @@ from Memristor_Crossbar import Memristor_Crossbar
 #     # This will log messages like:
 #     # 2024-10-05 12:34:56,789 - INFO - This is an info message.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Load conductance data
+# 
+# Uses the `load_conductance_data` function to read and extract conductance values from a CSV file.
+# The function reads the data, processes it, and returns a NumPy array containing the conductance values.
+# 
+# Args:
+#     file_path (str): The path to the CSV file containing the experimental data.
+#     skip_rows (int): The number of rows to skip when reading the CSV file (if any).
+#     separator (str): The delimiter used in the CSV file.
+#     column_names (list): A list of column names to assign to the CSV data.
+# 
+# Returns:
+#     np.ndarray: An array containing the conductance values from the data.
+# 
+# Example:
+#     conductance_data = load_conductance_data('datafile.csv')
+#     # The conductance_data array can then be used as input for the model's training.
+conductance_data = load_conductance_data('datafile.csv')
 
 
 # Define training dataset
