@@ -1,7 +1,7 @@
-Memristor_Crossbar Documentation
-================================
+experimental_conductances Documentation
+=======================================
 
-.. automodule:: memristor_crossbar.Memristor_Crossbar
+.. automodule:: memristor_crossbar.experimental_conductances
    :members:
    :undoc-members:
    :show-inheritance:

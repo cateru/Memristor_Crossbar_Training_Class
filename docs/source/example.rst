@@ -1,7 +1,7 @@
-Memristor_Crossbar Documentation
-================================
+training_simulation Documentation
+=================================
 
-.. automodule:: memristor_crossbar.Memristor_Crossbar
+.. automodule:: memristor_crossbar.training_simulation
    :members:
    :undoc-members:
    :show-inheritance:

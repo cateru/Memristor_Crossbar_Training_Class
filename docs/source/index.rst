@@ -8,15 +8,36 @@ Welcome to Memristor Crossbar Training class's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started:
 
-   README.md
+   Introduction.md
+   ProjectStructure.md
+   Installation.md
+   Usage.md
+   Features.md
+   Contributing.md
+   Appendix.md
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Documentation:
+
    memristor_crossbar
    test
+   data
+   example
+
+.. raw:: html
+
+   <div class="github-badge">
+    <a href="https://github.com/cateru/Memristor_Crossbar_Training_Class">
+        <img src="https://img.shields.io/badge/View_on-GitHub-blue?logo=github&style=for-the-badge" alt="View on GitHub">
+    </a>
+   </div>
+
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-.. * :ref:`search`

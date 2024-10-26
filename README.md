@@ -1,6 +1,7 @@
 # Memristor Crossbar Training Class
 
-This project aims to demonstrate the possibility to obtain a **successful training simulation** of a <u>*single-layer perceptron*</u> classifier represented by a **4x4 Memristor crossbar** for Neuromorphic Computing applications, utilizing an experimental dataset to emulate the device's physical behavior.
+This library facilitates the creation and management of **4x4 memristor crossbars** tailored for *training* a **single-layer perceptron classifier** in neuromorphic computing applications. It provides the necessary tools for training simulations using binary patterns for both inputs and outputs, along with an experimental dataset that mimics how the physical crossbar device behaves. The library also includes features for logging, saving data, and plotting, making it easier to track and visualize the training process.
+
 
 <center>
 <div style="text-align: center;">
@@ -8,12 +9,88 @@ This project aims to demonstrate the possibility to obtain a **successful traini
 </div>
 </center>
 
-## Neuromorphic Computing
+
+## Table of Contents
+
+1. [Project Structure](#project_structure)
+2. [Installation](#installation)
+3. [Usage](#usage)
+4. [Features](#features)
+5. [Contributing](#contributing)
+6. [Appendix](#appendix)
+
+
+## Project Structure 
+
+This project is organized into the following main components, located in the [memristor_crossbar](memristor_crossbar/) folder:
+
+1. **[Memristor_Crossbar.py](memristor_crossbar/Memristor_Crossbar.py)**: Defines the Memristor Crossbar class, encompassing all methods necessary for training and inference.
+2. **[Memristor_Crossbar_test.py](memristor_crossbar/Memristor_Crossbar_test.py)**: Includes testing functions designed specifically for the Memristor Crossbar class.
+3. **[experimental_conductances.py](memristor_crossbar/experimental_conductances.py)**: Includes the load_conductance_data function, which loads and processes conductance data from a specified CSV or .dat file.
+4. **[training_simulation.py](memristor_crossbar/training_simulation.py)**: Demonstrates how to conduct training simulations. It creates an instance of the memristor crossbar class, defines the training and expected output sets, and integrates the loading of conductance data for a complete training workflow.
+
+## Installation
+
+To install the library, clone the repository and install the necessary dependencies:
+
+```bash
+git clone https://github.com/cateru/Memristor_Crossbar_Training_Class.git
+cd Memristor_Crossbar_Training_Class
+pip install -r requirements.txt
+```
+
+## Usage
+
+To begin using the library, you can execute the `training_simulation.py` file, which provides a usage example. For instance:
+
+```bash
+python training_simulation.py
+```
+
+This file includes the Memristor Crossbar class and creates an instance. It also provides an example set of real conductance values, in case the user doesn’t have his own. For this specific example, a set of optimal parameters has been chosen for the dataset, and the fit method is applied using these parameters along with the provided experimental data. <br>
+The training and testing datasets are defined as binary vectors:
+-   **Training Set**: A 2D array where each row represents a sample used for training the model, with the corresponding output labels provided in the train_outputs array. The patterns were selected to maintain a Hamming distance of 1 from the ideal patterns (more in the [Appendix](#appendix) section). Users may also define their own training set if desired.
+-  **Testing Set**: A separate 2D array, used to evaluate the model’s performance after training, contains all remaining 4-bit patterns. Expected outputs for these patterns are defined in the test_outputs array.
+
+Note that each time the simulation starts, it relies on the random generation of shifts. <br>
+There are two recommended ways to use the fit method, as demonstrated in the example:
+1. **Single Simulation**: This approach performs a single simulation, generating plots and printing information that helps monitor the training process. 
+2. **Multiple Simulations**: This method utilizes a for loop, disabling plots and prints while enabling data saving for the shifts. The data is automatically saved in two separate folders based on whether the simulation converged or not. 
+
+By using this approach, if the simulation converges, you can take the saved shifts and utilize the custom shift option in the fit method. This allows you to check convergence again while plotting the data. <br>
+
+<div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; border-left: 5px solid #007bff;">
+<strong>Note:</strong> Running the code directly creates a folder named <code>dd/mm/yy</code> containing the results.<br>
+To perform a single simulation, comment out the last two lines of the <code>training_simulation.py</code> code.
+</div>
+
+
+## Features 
+
+Inside the `Memristor_Crossbar.py` module, there are methods that handle the mathematical processes of the training algorithm and perform weight updates. The module also includes methods for plotting key metrics that monitor the training progress, such as activation functions, total distance to convergence, weight updates, and individual activation responses. For users who want to explore the technical details of the algorithm and its code implementation, it's recommended to refer to the appendix.
+
+## Contributing
+
+Contributions are welcome! If you'd like to contribute, please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Commit your changes.
+4. Open a pull request and describe your changes.
+
+Please ensure that all tests pass before submitting your pull request.
+
+
+## Appendix
+
+This appendix provides an overview of the physical principles that motivated the creation of this project and its relevance within the neuromorphic computing framework. It also includes a detailed description of the algorithm’s steps along with any modifications made to implement it in Python. Finally, example output graphs are presented to help users verify the correctness of their results.
+
+### Neuromorphic Computing
 
 <u>*Neuromorphic computing*</u> is an approach to designing *hardware* and *software* that **mimics the structure and function of the human brain's neural networks** to improve energy efficiency and performance in tasks like pattern recognition and learning. <br>
 The key components of neuromorphic systems are <u>*synaptic-like*</u> devices, which emulate the behavior of biological synapses. These devices enable systems to replicate brain-like learning and adaptability by adjusting their "*synaptic weights*" based on experience, similar to how biological synapses **strengthen** or **weaken** connections through a process called *synaptic plasticity*.
 
-## Metal-Oxide Memristors Crossbars
+### Metal-Oxide Memristors Crossbars
 
 Metal-Oxide Memristors are Spintronic devices which present a synaptic behavior after the application of **identical Voltage pulses** with <u>sufficiently high amplitude</u>. In particular, the synaptic weight is represented by the **conductance** of the device and, by sending a train of voltage pulses, it can be increased in a **non-volatile way**, emulating in this way the synapse potentiation happening in the human brain. Also, after the conductance change, it's possibile to <u>return to the previous state</u> by applying a voltage pulse of opposite polarity, emulating so the synapse depression process [*Fig2.a*]. <br>
 It is so possible to build **integrated circuits** formed by memristors arranged in a crossbar configuration which play the role of simple neural networks and can learn tasks for neuromorphic computing applications. <br>
@@ -33,7 +110,7 @@ In the physical picture, the 4-bit patterns are represented by 2 distinct values
 </div>
 </center>
 
-## Training Algorithm 
+### Training Algorithm 
 
 In the following section is described the mathematical algorithm used for the training of the neural network. 
 As I introduced before, the memristive crossbar has been used to implement a single-layer perceptron with 4 inputs and 2 outputs.<br>
@@ -77,7 +154,7 @@ All these steps are summarized in the following picture [[2]](#references):
 </center>
 
 
-## Python Simulation
+### Python Simulation
 
 In this work, we present the implementation of a Python class that simulates the ***in-situ*** training process of a physical device. To replicate the role of synaptic depression and potentiation, an experimental dataset of conductances (similar to the one shown in Figure 2a, 2V, 50ms) has been used. Additionally, to achieve a sufficient dynamic range and account for device-to-device variation, the conductances are initialized and updated as follows:
 
@@ -85,34 +162,7 @@ $$G_{ij} = K \times [(G_{exp}(m) - G_{exp}(0)) + shift_{ij}]$$
 
 Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a random exponential distribution similar to that of the physical device.
 
-
-## Project Structure 
-
-This project is divided into the following blocks which are contained in the [memristor_crossbar](memristor_crossbar/) folder: <br>
-1. The [experimental conductances](memristor_crossbar/experimental_conductances.py) file, which processes the 'SP291D1NR100.dat' file and generates a NumPy array containing the conductance values. 
-2. The [Memristor Crossbar](memristor_crossbar/Memristor_Crossbar.py) file, which defines the Memristor Crossbar class, encompassing all methods necessary for training and inference.
-3. The [Memristor Crossbar test](memristor_crossbar/Memristor_Crossbar_test.py) file, which includes testing functions specifically designed for the Memristor Crossbar class.
-4. The [training simulation](memristor_crossbar/training_simulation.py) file, which imports the experimental conductances and the Memristor Crossbar class, creates an instance of the class, and utilizes the fit and predict methods.
-
-To initiate a simulation, simply open the [training simulation](memristor_crossbar/training_simulation.py) file. In this file, the experimental conductances and the Memristor Crossbar class are already imported, and an instance of the class is created. <br>
-In this specific case, a set of optimal parameters has been selected for this dataset. The fit method is implemented using these parameters along with the provided experimental data. <br>
-To use different sets of conductances, simply select them when calling the fit method. Note that each time the simulation starts, it relies on the random generation of shifts. <br>
-There are two recommended ways to use the fit method, as demonstrated in the example:
-1. Single Simulation: This approach performs a single simulation, generating plots and printing information that helps monitor the training process. 
-2. Multiple Simulations: This method utilizes a for loop, disabling plots and prints while enabling data saving for the shifts. The data is automatically saved in two separate folders based on whether the simulation converged or not. 
-
-By using this approach, if the simulation converges, you can take the saved shifts and utilize the custom shift option in the fit method. This allows you to check convergence again while plotting the data. <br>
-
-The [memristor_crossbar](memristor_crossbar/) and [docs](docs/) directories contain the Sphinx Read the Docs documentation for the code. To view it, download both directories, navigate to the docs folder, and run the make html command from the terminal. This will generate the HTML documentation in the docs/build/ folder. You can then open the index.html file to view the documentation. A README is included, which is similar to this one and recommended to be read first. The documentation covers the Memristor_Crossbar class and the testing framework. <br>
-
-> **NB!** <br>
-> Directly running the code creates a folder named `dd/mm/yy` containing the results. 
-> To perform a single simulation, the user should comment out the last two lines of the `training_simulation.py` code.
-
-
-
-
-## Examples 
+### Examples 
 
 Below are examples of output graphs from a simulation that successfully converged after 18 epochs:
 
@@ -160,7 +210,7 @@ And here are examples from a simulation that did not converge after the default 
 
 
 
-## References
+### References
 
 [[1]](https://doi.org/10.1002/aelm.202300887) Shumilin, A., Neha, P., Benini, M., Rakshit, R., Singh, M., Graziosi, P., ... & Riminucci, A. (2024). Glassy Synaptic Time Dynamics in Molecular La0. 7Sr0. 3MnO3/Gaq3/AlOx/Co Spintronic Crossbar Devices. Advanced Electronic Materials, 2300887. <br>
 [[2]](https://doi.org/10.1038/nature14441) Prezioso, M., Merrikh-Bayat, F., Hoskins, B. D., Adam, G. C., Likharev, K. K., & Strukov, D. B. (2015). Training and operation of an integrated neuromorphic network based on metal-oxide memristors. Nature, 521(7550), 61-64.

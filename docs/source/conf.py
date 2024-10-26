@@ -31,6 +31,9 @@ exclude_patterns = []
 
 myst_enable_extensions = ["amsmath", "dollarmath"]
 
+autodoc_mock_imports = ["experimental_conductances", "Memristor_Crossbar"]
+
+
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
@@ -43,7 +46,7 @@ source_suffix = {
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-html_css_files = ['custom.css']
+html_css_files = ['custom.css',]
 
 
 
@@ -59,6 +62,6 @@ html_css_files = ['custom.css']
 # Other options
 html_title = 'Memristor Crossbar Training class Documentation'
 html_short_title = 'Memristor Crossbar Docs'
-html_logo = '_static/your_logo1.png'
+html_logo = '_static/logo_new_2.png'
 html_favicon = '_static/favicon.ico'
 html_show_sphinx = False
