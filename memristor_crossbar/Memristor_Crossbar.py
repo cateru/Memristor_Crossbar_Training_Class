@@ -64,8 +64,10 @@ class Memristor_Crossbar:
         Sets:
             self.conductance_data (np.ndarray): The normalized conductance data,
                 where the first value is subtracted from each element.
-                Example: if conductance_data = np.array([5.0, 6.0, 7.0, 8.0]),
-                then self.conductance_data = np.array([0.0, 1.0, 2.0, 3.0])
+
+        Example:
+            >>> conductance_data = np.array([5.0, 6.0, 7.0, 8.0])
+            self.conductance_data = np.array([0.0, 1.0, 2.0, 3.0])       
         """
         raw_conductance_data = conductance_data
         first_value = raw_conductance_data[0]
@@ -127,17 +129,19 @@ class Memristor_Crossbar:
             self.all_conductances (np.ndarray): Similar to self.conductances,
                 storing the same product in the first element.
 
-        Example: if self.conductance_data[0] = np.array([0.0, 1.0, 2.0, 3.0]),
-            self.shifts = np.array([[ 0.1, -0.5,  0.4, -0.3], [ 0.2, -0.1,  0.5, -0.4], [ 0.3, -0.2,  0.6, -0.5], [ 0.4, -0.3,  0.7, -0.6]])
-            and self.multiplication_factor = 2, then:
+        Example: 
+            >>> self.conductance_data[0] = np.array([0.0, 1.0, 2.0, 3.0]),
+            >>> self.shifts = np.array([[ 0.1, -0.5,  0.4, -0.3], [ 0.2, -0.1,  0.5, -0.4], [ 0.3, -0.2,  0.6, -0.5], [ 0.4, -0.3,  0.7, -0.6]])
+            >>> self.multiplication_factor = 2
             self.conductances[0] = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]])
             self.conductances[1] = 0
 
         Logging:
             This method logs the initialized conductances and the epoch number.
             For example:
-            - "Initial Conductances: [0.2 -1.0 0.8 -0.6 ...]"
-            - "Epoch: 0"
+            
+            >>>  "Initial Conductances: [0.2 -1.0 0.8 -0.6 ...]"
+            >>>  "Epoch: 0"
         """
         self.conductances[0] = (
             self.conductance_data[0] + self.shifts
@@ -162,8 +166,9 @@ class Memristor_Crossbar:
             np.ndarray: An array of voltages corresponding to the pattern.
 
         Example:
-            Given pattern = np.array([0, 1, 0, 1]) and default V0 = -0.1 and V1 = 0.1,
-            the resulting voltage array will be:
+            >>> Given pattern = np.array([0, 1, 0, 1]) 
+            >>> V0 = -0.1 
+            >>> V1 = 0.1
             voltages_j = np.array([-0.1,  0.1, -0.1,  0.1])
         """
         voltages_j = np.array([V0 if i == 0 else V1 for i in pattern])
@@ -183,9 +188,8 @@ class Memristor_Crossbar:
             np.ndarray: The calculated hardware currents.
 
         Example:
-            Given pattern = np.array([1, 0, 1, 1])
-            and conductances = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]]),
-            the resulting hardware currents will be:
+            >>> Given pattern = np.array([1, 0, 1, 1])
+            >>> conductances = np.array([[ 0.2, -1.0,  0.8, -0.6], [ 0.4, -0.2,  1.0, -0.8], [ 0.6, -0.4,  1.2, -1.0], [ 0.8, -0.6,  1.4, -1.2]]),
             hardware_currents = np.array([0.12, -0.18 , 0.24, -0.2])
         """
         applied_voltages = self.voltage_array(pattern)
@@ -265,7 +269,6 @@ class Memristor_Crossbar:
         activation_derivative = self.activation_function_derivative()
         target_values = np.where(output == 1, self.positive_target, self.negative_target)
         delta_i = (target_values - activation) * activation_derivative
-
         return delta_i
 
     def calculate_Delta_ij(self, output: np.ndarray, pattern: np.ndarray, i) -> None:
@@ -651,13 +654,17 @@ class Memristor_Crossbar:
         """
         current_date = datetime.now().strftime("%d-%m-%Y")
 
-        os.makedirs(current_date)
+        if not os.path.exists(current_date):
+            os.makedirs(current_date)
 
         converged_dir = os.path.join(current_date, "converged")
         not_converged_dir = os.path.join(current_date, "not_converged")
 
-        os.makedirs(converged_dir)
-        os.makedirs(not_converged_dir)
+        if not os.path.exists(converged_dir):
+            os.makedirs(converged_dir)
+
+        if not os.path.exists(not_converged_dir):
+            os.makedirs(not_converged_dir)
 
         if converged:
             filename = f"{base_filename}_converged_data.csv"
