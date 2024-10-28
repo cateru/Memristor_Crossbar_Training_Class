@@ -87,7 +87,7 @@ if __name__ == "__main__":
     conductance_data = load_conductance_data('datafile.csv')
 
     # Initialize Memristor Crossbar model
-    model = Memristor_Crossbar(beta=20000, positive_target=0.8, negative_target=-0.8, range=0.0001, multiplication_factor=10)
+    model = Memristor_Crossbar(beta=20000, positive_target=0.8, negative_target=-0.8, multiplication_factor=10)
 
     # Train the model
     epoch = model.fit(define_training_data(), define_training_outputs(), conductance_data)

@@ -15,7 +15,6 @@ class Memristor_Crossbar:
     beta: float
     positive_target: float
     negative_target: float
-    range: float
     multiplication_factor: int
     training_set_width: int = 6
     epochs: int = 48
