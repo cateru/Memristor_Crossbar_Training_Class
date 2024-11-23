@@ -97,16 +97,13 @@ class Memristor_Crossbar:
         Attributes Used:
             - self.min_value (float): The lower bound of the scaled random shifts.
             - self.max_value (float): The upper bound of the scaled random shifts.
-            - self.division_factor (float): A parameter to control the spread (standard deviation) 
-            of the lognormal distribution.
-            - self.num_elements (int): The total number of elements to be generated, 
-            which should match the size of the reshaped array (4x4 in this case).
+            - self.division_factor (float): A parameter to control the spread (standard deviation) of the lognormal distribution.
+            - self.num_elements (int): The total number of elements to be generated, which should match the size of the reshaped array (4x4 in this case).
 
         Procedure:
             1. Compute the parameters for the lognormal distribution:
             - `mu`: The natural logarithm of the average of `self.min_value` and `self.max_value`.
-            - `sigma`: A factor derived from the logarithmic ratio of `self.max_value` to `self.min_value`, 
-                divided by `self.division_factor` to control variability.
+            - `sigma`: A factor derived from the logarithmic ratio of `self.max_value` to `self.min_value`, divided by `self.division_factor` to control variability.
             2. Generate `self.num_elements` random values following the lognormal distribution.
             3. Scale the random values to fit within the range [`self.min_value`, `self.max_value`].
             4. Reshape the scaled values into a 4x4 array.
