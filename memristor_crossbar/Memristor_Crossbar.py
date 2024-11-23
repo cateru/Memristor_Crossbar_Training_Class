@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from matplotlib.cm import get_cmap
 from datetime import datetime
 import logging
+from matplotlib.colors import LinearSegmentedColormap
 
 
 @dataclass
@@ -17,12 +18,16 @@ class Memristor_Crossbar:
     negative_target: float
     multiplication_factor: int
     training_set_width: int = 6
-    epochs: int = 48
+    epochs: int = 51
     number_of_neurons: int = 2
     number_of_rows: int = 4
     number_of_columns: int = 4
+    max_value : int = 10**-7
+    min_value : int = 10**-8
+    division_factor : int = 5       
 
     test_set_width: int = 16 - training_set_width
+    num_elements: int = number_of_rows*number_of_columns
     conductance_data: np.ndarray = None
     shifts: np.ndarray = None
     logic_currents: np.ndarray = None
@@ -72,24 +77,55 @@ class Memristor_Crossbar:
         first_value = raw_conductance_data[0]
         self.conductance_data = raw_conductance_data - first_value
 
-    def shift_exp(self) -> None:
+    def shift_lognormal(self) -> None:
         """
-        Generates random shifts for the conductance values based on an exponential distribution
-        and reshapes them into a 4x4 array.
+        Generates random shifts for conductance values using a lognormal distribution, 
+        scales them to a specified range, and reshapes the result into a 4x4 array.
+
+        Purpose:
+            This method simulates the stocasticity of the conductance values, 
+            which is crucial for the results of the training and for modeling the realistic behavior of the devices.
 
         Returns:
             None
 
         Sets:
-            self.shifts (np.ndarray): A 4x4 array of random shifts generated using the exponential
-                                    distribution, centered around 0.
+            self.shifts (np.ndarray): 
+                A 4x4 array of scaled random shifts generated using a lognormal distribution. 
+                The values are bounded between `self.min_value` and `self.max_value`.
+
+        Attributes Used:
+            - self.min_value (float): The lower bound of the scaled random shifts.
+            - self.max_value (float): The upper bound of the scaled random shifts.
+            - self.division_factor (float): A parameter to control the spread (standard deviation) 
+            of the lognormal distribution.
+            - self.num_elements (int): The total number of elements to be generated, 
+            which should match the size of the reshaped array (4x4 in this case).
+
+        Procedure:
+            1. Compute the parameters for the lognormal distribution:
+            - `mu`: The natural logarithm of the average of `self.min_value` and `self.max_value`.
+            - `sigma`: A factor derived from the logarithmic ratio of `self.max_value` to `self.min_value`, 
+                divided by `self.division_factor` to control variability.
+            2. Generate `self.num_elements` random values following the lognormal distribution.
+            3. Scale the random values to fit within the range [`self.min_value`, `self.max_value`].
+            4. Reshape the scaled values into a 4x4 array.
+            5. Assign the reshaped array to `self.shifts`.
+
+        Example:
+            >>> crossbar = Memristor_Crossbar()
+            >>> crossbar.shift_lognormal()
+            >>> print(crossbar.shifts)
+            [[1.23e-08 1.56e-08 1.10e-08 1.45e-08]
+            [1.34e-08 1.29e-08 1.60e-08 1.47e-08]
+            [1.32e-08 1.50e-08 1.48e-08 1.28e-08]
+            [1.40e-08 1.36e-08 1.41e-08 1.44e-08]]
         """
-        center_value = 0
-        num_elements = 16
-        lambda_param = 55845
-        rnd_shifts = np.random.exponential(scale=1 / lambda_param, size=num_elements)
-        rnd_shifts -= np.mean(rnd_shifts) - center_value
-        self.shifts = np.reshape(rnd_shifts, (4, 4))
+        mu = np.log(np.mean([self.min_value, self.max_value]))
+        sigma = abs(np.log(self.max_value / self.min_value) / self.division_factor)
+        rnd_shifts = np.random.lognormal(mean=mu, sigma=sigma, size=self.num_elements)
+        scaled_shifts = self.min_value + (self.max_value - self.min_value) * (rnd_shifts - rnd_shifts.min()) / (rnd_shifts.max() - rnd_shifts.min())
+        self.shifts = np.reshape(scaled_shifts, (self.number_of_rows, self.number_of_columns))
 
     def custom_shift(self, custom_shifts: np.ndarray) -> None:
         """
@@ -562,10 +598,8 @@ class Memristor_Crossbar:
         Notes:
             This method creates a line plot using matplotlib to visualize the evolution of the total error over the given epochs.
         """
-        pulses = np.arange(epochs + 1)
-        pulses = pulses[1:]
-        errors = self.all_errors[1:epochs]
-        errors = np.append(errors, 0)
+        pulses = np.arange(epochs+1)
+        errors = self.all_errors[:epochs+1] 
         fig, ax = plt.subplots(1, 1, figsize=(10, 3))
         ax.plot(pulses, errors, "o-", linewidth=2)
         ax.set_xlabel("Epoch")
@@ -590,16 +624,16 @@ class Memristor_Crossbar:
             This method creates a grid of subplots using matplotlib, where each subplot shows the activation results for a specific neuron and input pair over the given epochs.
             Horizontal lines indicate the positive and negative targets.
         """
-        pulses = np.arange(epochs)
+        pulses = np.arange(epochs+1)
         rows, cols = self.result[0].shape
-        cmap = get_cmap("tab20")
+        blue_palette= LinearSegmentedColormap.from_list("cyan_palette", ["#00B4D8", "#023E8A"])
         num_plots = rows * cols
         fig, axes = plt.subplots(rows, cols, figsize=(17, 8), sharex=True)
         for j in range(cols):
             for i in range(rows):
-                results = self.result[:epochs, i, j]
+                results = self.result[:epochs+1, i, j]
                 ax = axes[i, j]
-                color = cmap((i * cols + j) % num_plots)
+                color = blue_palette((i * cols + j) / num_plots)
                 patt = pattern[j]
                 out = output[j]
                 ax.plot(
@@ -611,9 +645,9 @@ class Memristor_Crossbar:
                     label=f"Pattern: {patt}\nOutput: {out}\nLogic Neuron: {i + 1}",
                 )
                 if out[i] == 1:
-                    ax.axhline(self.positive_target)
+                    ax.axhline(self.positive_target, linewidth = 1.5, color = "red")
                 else:
-                    ax.axhline(self.negative_target)
+                    ax.axhline(self.negative_target, linewidth = 1.5, color = "red")
                 ax.xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
                 ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
                 ax.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -681,8 +715,10 @@ class Memristor_Crossbar:
             file.write(f"Positive Target = {self.positive_target}\n")
             file.write(f"Negative Target = {self.negative_target}\n")
             file.write(f"Multiplication factor = {self.multiplication_factor}\n")
-            file.write(f"Random distribution parameter = {self.range}\n")
             file.write(f"Shifts = {self.shifts}\n")
+            file.write(f"Shift range upper limit = {self.max_value}\n")
+            file.write(f"Shift range lower limit = {self.min_value}\n")
+            file.write(f"Division factor = {self.division_factor}\n")
             file.write(f"C_(ij) where i = Input, j = Neuron\n")
             writer.writerow([])
             writer.writerow(
@@ -734,7 +770,7 @@ class Memristor_Crossbar:
         if custom_shifts is not None:
             self.custom_shift(custom_shifts)
         else:
-            self.shift_exp()
+            self.shift_lognormal()
         self.conductance_init()
         for epoch in range(1, self.epochs):
             converged = True

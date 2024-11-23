@@ -87,17 +87,18 @@ if __name__ == "__main__":
     conductance_data = load_conductance_data('datafile.csv')
 
     # Initialize Memristor Crossbar model
-    model = Memristor_Crossbar(beta=20000, positive_target=0.8, negative_target=-0.8, multiplication_factor=10)
+    model = Memristor_Crossbar(beta=6e6, positive_target=0.8, negative_target=-0.8, multiplication_factor=10)
 
     # Train the model
     epoch = model.fit(define_training_data(), define_training_outputs(), conductance_data)
-    converged = (epoch < model.epochs)
+    converged = (epoch < model.epochs-1)
     model.visualize_graphs(epoch, define_training_data(), define_training_outputs(), converged)
 
     # Predict using the model
-    model.predict(define_testing_data(), define_testing_outputs())
+    if converged:
+        model.predict(define_testing_data(), define_testing_outputs())
 
     # Iterative training
     logging.disable(logging.CRITICAL)
     for i in range(100):
-        model.fit(define_training_data(), define_training_outputs(), conductance_data, save_data=True, filename=f"test_10_{i}")
+        model.fit(define_training_data(), define_training_outputs(), conductance_data, save_data=True, filename=f"test_{i}")

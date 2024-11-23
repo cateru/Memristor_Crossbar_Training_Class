@@ -13,38 +13,56 @@ class Test_Memristor_Crossbar:
     def setup_method(self):
         """
         Set up the test method with initial parameters and create an instance of Memristor_Crossbar.
+
+        Initializes:
+            - Crossbar parameters such as `beta`, targets and multiplication factor.
+            - Creates an instance of Memristor_Crossbar with these parameters.
+            - Initializes `predictions` as a zero-filled array with shape (`test_set_width`, 2).
         """
-        self.beta = 20000
+        self.beta = 1e6
         self.positive_target = 0.75
         self.negative_target = -0.75
-        self.range = 0.001
         self.multiplication_factor = 10
-        self.training_set_width = 6
-        self.epochs = 5
         self.crossbar = Memristor_Crossbar(
             beta=self.beta,
             positive_target=self.positive_target,
             negative_target=self.negative_target,
-            range=self.range,
             multiplication_factor=self.multiplication_factor,
-            training_set_width=self.training_set_width,
-            epochs=self.epochs,
         )
-        self.crossbar.predictions = np.zeros((self.crossbar.test_set_width, 2))
 
     def test_initialization(self):
         """
         Test the initialization of the Memristor_Crossbar instance.
 
         Asserts:
-            The attributes of the crossbar are correctly set.
+            - The manually set attributes (e.g., `beta`, targets) match the expected values.
+            - The default attributes of Memristor_Crossbar are correctly initialized.
         """
         assert self.crossbar.beta == self.beta
         assert self.crossbar.positive_target == self.positive_target
         assert self.crossbar.negative_target == self.negative_target
-        assert self.crossbar.range == self.range
         assert self.crossbar.multiplication_factor == self.multiplication_factor
-        assert self.crossbar.training_set_width == self.training_set_width
+        assert self.crossbar.num_elements == self.crossbar.number_of_rows * self.crossbar.number_of_columns
+        assert self.crossbar.max_value == 10**-7
+        assert self.crossbar.min_value == 10**-8
+        assert self.crossbar.division_factor == 5
+        assert self.crossbar.training_set_width == 6
+        assert self.crossbar.epochs == 51
+        assert self.crossbar.number_of_neurons == 2
+        assert self.crossbar.number_of_rows == 4
+        assert self.crossbar.number_of_columns == 4
+        assert self.crossbar.test_set_width == (16 - self.crossbar.training_set_width) 
+        assert isinstance(self.crossbar.predictions, np.ndarray)
+        assert self.crossbar.predictions.shape == (self.crossbar.test_set_width, self.crossbar.number_of_neurons)
+        assert self.crossbar.shifts.shape == (self.crossbar.number_of_rows, self.crossbar.number_of_columns)
+        assert self.crossbar.logic_currents.shape == (self.crossbar.number_of_neurons,)
+        assert self.crossbar.all_delta_ij.shape == (self.crossbar.training_set_width, self.crossbar.number_of_neurons, self.crossbar.number_of_rows)
+        assert self.crossbar.conductances.shape == (self.crossbar.number_of_neurons, self.crossbar.number_of_rows, self.crossbar.number_of_columns)
+        assert self.crossbar.all_conductances.shape == (self.crossbar.epochs, self.crossbar.number_of_rows, self.crossbar.number_of_columns)
+        assert self.crossbar.saved_correct_conductances.shape == (self.crossbar.number_of_rows, self.crossbar.number_of_columns)
+        assert self.crossbar.errors.shape == (self.crossbar.training_set_width, self.crossbar.number_of_neurons)
+        assert self.crossbar.all_errors.shape == (self.crossbar.epochs,)
+        assert self.crossbar.result.shape == (self.crossbar.epochs, self.crossbar.number_of_neurons, self.crossbar.training_set_width)     
 
     def test_experimental_data(self):
         """
@@ -58,21 +76,21 @@ class Test_Memristor_Crossbar:
         self.crossbar.experimental_data(conductance_data)
         np.testing.assert_array_equal(self.crossbar.conductance_data, expected_data)
 
-    def test_shift_exp(self):
+    def test_shift_lognormal(self):
         """
-        Test the shift_exp method of the Memristor_Crossbar instance without a seed.
+        Test the shift_lognormal method of the Memristor_Crossbar instance without a seed.
 
         Asserts:
             - The shifts matrix has the correct shape (4, 4).
             - The mean of the shifts is approximately 0 (within tolerance).
         """
-        self.crossbar.shift_exp()
+        self.crossbar.shift_lognormal()
         assert self.crossbar.shifts.shape == (4, 4)
         assert np.isclose(np.mean(self.crossbar.shifts), 0, atol=1e-6)
 
-    def test_shift_exp_seed(self):
+    def test_shift_lognormal_seed(self):
         """
-        Test the shift_exp method of the Memristor_Crossbar instance with a seed.
+        Test the shift_lognormal method of the Memristor_Crossbar instance with a seed.
 
         Asserts:
             - The shifts matrix has the correct shape (4, 4).
@@ -80,14 +98,14 @@ class Test_Memristor_Crossbar:
         """
         seed = 5
         np.random.seed(seed) 
-        self.crossbar.shift_exp() 
+        self.crossbar.shift_lognormal() 
         assert self.crossbar.shifts.shape == (4, 4)
         expected_shifts = np.array(
             [
-                [-1.11912190e-05, 2.09486306e-05, -1.15393614e-05, 2.92330633e-05],
-                [-3.68447526e-06, 1.25519580e-06, 1.03151019e-05, -2.60211056e-06],
-                [-9.38094645e-06, -1.19631465e-05, -1.41786362e-05, 8.32839302e-06],
-                [-5.26160748e-06, -1.26000583e-05, 2.22713821e-05, -9.95020567e-06],
+                [3.63488861e-08, 2.36501542e-08, 1.00000000e-07, 2.47489063e-08],
+                [3.03383895e-08, 6.56920543e-08, 1.66960742e-08, 2.02848130e-08],
+                [3.16705896e-08, 2.36638560e-08, 1.39068835e-08, 2.54268044e-08],
+                [2.32696858e-08, 3.96412432e-08, 1.00000000e-08, 1.89988454e-08],
             ]
         )
         np.testing.assert_array_almost_equal(self.crossbar.shifts, expected_shifts)
@@ -159,14 +177,14 @@ class Test_Memristor_Crossbar:
         np.random.seed(seed) 
         expected_conductances = np.array(
             [
-                [-1.11912190e-04, 2.09486306e-04, -1.15393614e-04, 2.92330633e-04],
-                [-3.68447526e-05, 1.25519580e-05, 1.03151019e-04, -2.60211056e-05],
-                [-9.38094645e-05, -1.19631465e-04, -1.41786362e-04, 8.32839302e-05],
-                [-5.26160748e-05, -1.26000583e-04, 2.22713821e-04, -9.95020567e-05],
+                [3.63488861e-07, 2.36501542e-07, 1.00000000e-06, 2.47489063e-07],
+                [3.03383895e-07, 6.56920543e-07, 1.66960742e-07, 2.02848130e-07],
+                [3.16705896e-07, 2.36638560e-07, 1.39068835e-07, 2.54268044e-07],
+                [2.32696858e-07, 3.96412432e-07, 1.00000000e-07, 1.89988454e-07],
             ]
         )
         self.crossbar.experimental_data(conductance_data)
-        self.crossbar.shift_exp()
+        self.crossbar.shift_lognormal()
         self.crossbar.conductance_init()
         np.testing.assert_array_almost_equal(
             self.crossbar.conductances[0], expected_conductances
@@ -271,8 +289,8 @@ class Test_Memristor_Crossbar:
     @pytest.mark.parametrize(
         "logic_currents, expected_activation",
         [
-            (np.array([5e-4, -5e-4]), np.array([1.0, -1.0])),
-            (np.array([5e-20, -5e-20]), np.array([0.0, -0.0])),
+            (np.array([1e-5, -1e-5]), np.array([1.0, -1.0])),
+            (np.array([1e-20, -1e-20]), np.array([0.0, -0.0])),
         ],
     )
     def test_activation_function(self, logic_currents, expected_activation):
@@ -293,8 +311,8 @@ class Test_Memristor_Crossbar:
     @pytest.mark.parametrize(
         "logic_currents, expected_derivative",
         [
-            (np.array([5e-4, -5e-4]), np.array([0.000165, 0.000165])),
-            (np.array([5e-20, -5e-20]), np.array([20000, 20000])),
+            (np.array([1e-5, -1e-5]), np.array([0.008245, 0.008245])),
+            (np.array([1e-20, -1e-20]), np.array([1e6, 1e6])),
         ],
     )
     def test_activation_function_derivative(self, logic_currents, expected_derivative):
@@ -320,8 +338,8 @@ class Test_Memristor_Crossbar:
             The delta_i values are correctly calculated based on the output and logic currents.
         """
         output = np.array([1, 0])
-        logic_currents = np.array([5e-20, -5e-20])
-        expected_delta_i = np.array([15000, -15000])
+        logic_currents = np.array([1e-20, -1e-20])
+        expected_delta_i = np.array([750000, -750000])
         self.crossbar.logic_currents = logic_currents
         delta_i = self.crossbar.calculate_delta_i(output)
         np.testing.assert_array_almost_equal(delta_i, expected_delta_i)
@@ -335,9 +353,9 @@ class Test_Memristor_Crossbar:
         """
         pattern = np.array([0, 1, 0, 1])
         output = np.array([1, 0])
-        logic_currents = np.array([5e-20, -5e-20])
+        logic_currents = np.array([1e-20, -1e-20])
         expected_Delta_ij = np.array(
-            [[-1500, 1500, -1500, 1500], [1500, -1500, 1500, -1500]]
+            [[-75000, 75000, -75000, 75000], [75000, -75000, 75000, -75000]]
         )
         i = 0
         self.crossbar.logic_currents = logic_currents
@@ -355,12 +373,12 @@ class Test_Memristor_Crossbar:
         """
         all_delta_ij = np.array(
             [
-                [[1500, 1500, 1500, -1500], [-1500, -1500, -1500, 1500]],
-                [[-1500, -1500, 1500, -1500], [1500, 1500, -1500, 1500]],
-                [[-1500, 1500, 1500, -1500], [1500, -1500, -1500, 1500]],
-                [[-1500, 1500, 1500, -1500], [1500, -1500, -1500, 1500]],
-                [[-1500, -1500, 1500, -1500], [1500, 1500, -1500, 1500]],
-                [[1500, 1500, 1500, -1500], [-1500, -1500, -1500, 1500]],
+                [[75000, 75000, 75000, -75000], [-75000, -75000, -75000, 75000]],
+                [[-75000, -75000, 75000, -75000], [75000, 75000, -75000, 75000]],
+                [[-75000, 75000, 75000, -75000], [75000, -75000, -75000, 75000]],
+                [[-75000, 75000, 75000, -75000], [75000, -75000, -75000, 75000]],
+                [[-75000, -75000, 75000, -75000], [75000, 75000, -75000, 75000]],
+                [[75000, 75000, 75000, -75000], [-75000, -75000, -75000, 75000]],
             ]
         )
         expected_deltaW_ij = np.array([[-1, +1, +1, -1], [+1, -1, -1, +1]])
@@ -459,7 +477,7 @@ class Test_Memristor_Crossbar:
         """
         conductance_data = np.array([1.0, 1.5, 2.0, 2.5, 3.0])
         self.crossbar.experimental_data(conductance_data)
-        self.crossbar.shift_exp()
+        self.crossbar.shift_lognormal()
         self.crossbar.conductance_init()
         self.crossbar.update_weights(1)
         self.crossbar.save_data(base_filename="test_simulation", converged=False)
@@ -516,7 +534,7 @@ class Test_Memristor_Crossbar:
             All mocked methods are called correctly based on the parameters.
         """
         self.crossbar.experimental_data = MagicMock()
-        self.crossbar.shift_exp = MagicMock()
+        self.crossbar.shift_lognormal = MagicMock()
         self.crossbar.conductance_init = MagicMock()
         self.crossbar.calculate_Delta_ij = MagicMock()
         self.crossbar.calculate_logic_currents = MagicMock()
@@ -531,7 +549,7 @@ class Test_Memristor_Crossbar:
             save_data=save_data,
         )
         self.crossbar.experimental_data.assert_called_once_with(conductance_data)
-        self.crossbar.shift_exp.assert_called_once()
+        self.crossbar.shift_lognormal.assert_called_once()
         self.crossbar.conductance_init.assert_called_once()
         self.crossbar.calculate_logic_currents.assert_called()
         self.crossbar.calculate_Delta_ij.assert_called()
@@ -586,8 +604,8 @@ class Test_Memristor_Crossbar:
     @pytest.mark.parametrize(
         "logic_currents, expected_predictions",
         [
-            (np.array([5e-4, -5e-4]), np.array([1, 0])),
-            (np.array([-5e-20, 5e-6]), np.array([2, 2])),
+            (np.array([1e-6, -1e-6]), np.array([1, 0])),
+            (np.array([-1e-20, 1e-20]), np.array([2, 2])),
         ],
     )
     def test_check_convergence(self, logic_currents, expected_predictions):
