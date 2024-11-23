@@ -16,12 +16,14 @@ There are two recommended ways to use the fit method, as demonstrated in the exa
 1. **Single Simulation**: This approach performs a single simulation, generating plots and printing information that helps monitor the training process. 
 2. **Multiple Simulations**: This method utilizes a for loop, disabling plots and prints while enabling data saving for the shifts. The data is automatically saved in two separate folders based on whether the simulation converged or not. 
 
-By using this approach, if the simulation converges, you can take the saved shifts and utilize the custom shift option in the fit method. This allows you to check convergence again while plotting the data. <br>
+By using this approach, if the simulation converges, the user can take the saved shifts and utilize the custom shift option in the fit method. This allows to check convergence again while plotting the data. <br>
 
 ```{note}
 **Note:** Running the code directly creates a folder named `dd/mm/yy` containing the results.
 To perform a single simulation, comment out the last two lines of the `training_simulation.py` code.
 ```
+
+Extensive studies have shown that the convergence of training is closely tied to the relationship between the dataset's on/off ratio and the range of the shifts. Specifically, the on/off ratio must be significantly larger than the shift range to ensure effective training. Therefore, users are encouraged to carefully configure the parameters of the lognormal shifts.
 
 <div class="github-badge">
 <a href="https://github.com/cateru/Memristor_Crossbar_Training_Class">

@@ -73,11 +73,11 @@ All these steps are summarized in the following picture [[2]](#references):
 
 ## Python Simulation
 
-In this work, we present the implementation of a Python class that simulates the ***in-situ*** training process of a physical device. To replicate the role of synaptic depression and potentiation, an experimental dataset of conductances (similar to the one shown in Figure 2a, 2V, 50ms) has been used. Additionally, to achieve a sufficient dynamic range and account for device-to-device variation, the conductances are initialized and updated as follows:
+In this work, we present the implementation of a Python class that simulates the ***in-situ*** training process of a physical device. To replicate the role of synaptic depression and potentiation, the experimental dataset of conductances shown in Figure 2a (2V, 50ms) has been used. Additionally, to achieve a sufficient dynamic range and account for device-to-device variation, the conductances are initialized and updated as follows:
 
 $$G_{ij} = K \times [(G_{exp}(m) - G_{exp}(0)) + shift_{ij}]$$
 
-Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a random exponential distribution similar to that of the physical device.
+Where $K$ is a multilication factor while $shift_{ij}$ was obtained using a random lognormal distribution similar to that of the physical device. 
 
 ## Examples 
 
@@ -85,23 +85,23 @@ Below are examples of output graphs from a simulation that successfully converge
 
 <center>
 <div style="text-align: center;">
-    <img src="_static/conds_18ep.png" alt="conductances" width="800">
+    <img src="_static/conds_19.png" alt="conductances" width="800">
 </div>
 
 <div style="text-align: center;">
-    <img src="_static/logw.png" alt="logic_weights" width="800">
+    <img src="_static/weights_19.png" alt="logic_weights" width="800">
 </div>
 
 <div style="text-align: center;">
-    <img src="_static/activ_18ep.png" alt="activations" width="800">
+    <img src="_static/activ_19.png" alt="activations" width="800">
 </div>
 
 <div style="text-align: center;">
-    <img src="_static/error.png" alt="error" width="600">
+    <img src="_static/error_19.png" alt="error" width="600">
 </div>
 
 <div style="text-align: center;">
-    <img src="_static/3d.png" alt="3d" width="400">
+    <img src="_static/final_19.png" alt="3d" width="400">
 </div>
 </center>
 
@@ -113,7 +113,7 @@ And here are examples from a simulation that did not converge after the default 
 </div>
 
 <div style="text-align: center;">
-    <img src="_static/nonconv_synoutput.png" alt="logic_weights_nonconv" width="800">
+    <img src="_static/nonconv_weights.png" alt="logic_weights_nonconv" width="800">
 </div>
 
 <div style="text-align: center;">
