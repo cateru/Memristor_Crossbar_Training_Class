@@ -1,14 +1,39 @@
-/* Change the background color of the function signature box */
-.highlight,
-.sig {
-    background-color: #68f4ac; /* Light green background */
-    padding: 10px;
-    border-radius: 4px;
-}
-
 .github-badge {
     position: fixed;
     bottom: 0; 
     right: 0; 
     z-index: 1000;
 }
+
+/* Add hover effects for GitHub links */
+a[href^="https://github.com"] {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a[href^="https://github.com"]:hover {
+    text-decoration: underline;
+}
+
+/* Make the main content span the full width of the page */
+.wy-nav-content {
+    max-width: none; /* Remove the default max-width constraint */
+    width: 90%; /* Adjust the width to your preference */
+    margin: auto; /* Center the content */
+}
+
+/* Adjust the table of contents width for better balance */
+.wy-side-nav-search {
+    width: 300px; /* Change the sidebar width as needed */
+}
+
+.highlight pre {
+    background-color: #333334 !important; /* Light gray background */
+    padding: 5px; /* Add padding inside the code block */
+    font-family: Consolas, Monaco, 'Courier New', monospace; /* Cleaner font */
+}
+
+button.copybtn {
+    color: whitesmoke;
+    background-color: #333334;
+ }

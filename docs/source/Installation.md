@@ -3,9 +3,9 @@
 To install the library, clone the github repository and install the necessary dependencies:
 
 ```bash
-$ git clone https://github.com/cateru/Memristor_Crossbar_Training_Class.git
-$ cd Memristor_Crossbar_Training_Class
-$ pip install -r requirements.txt
+git clone https://github.com/cateru/Memristor_Crossbar_Training_Class.git
+cd Memristor_Crossbar_Training_Class
+pip install -r requirements.txt
 ```
 
 <div class="github-badge">

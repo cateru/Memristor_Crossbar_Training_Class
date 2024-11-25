@@ -1,10 +1,10 @@
 # Appendix
 
-This appendix provides an overview of the physical principles that motivated the creation of this project and its relevance within the neuromorphic computing framework. It also includes a detailed description of the algorithm’s steps along with any modifications made to implement it in Python. Finally, example output graphs are presented to help users verify the correctness of their results.
+This appendix provides an overview of the physical principles that motivated the creation of this project and its relevance within the neuromorphic computing framework. It also includes a detailed description of the algorithm’s steps along with any modifications made to implement it in Python considering the non-idealities of the physical device. Finally, example output graphs are presented to help users verify the correctness of their results.
 
 ## Neuromorphic Computing
 
-<u>*Neuromorphic computing*</u> is an approach to designing *hardware* and *software* that **mimics the structure and function of the human brain's neural networks** to improve energy efficiency and performance in tasks like pattern recognition and learning. <br>
+<u>*Neuromorphic computing*</u> is an approach to designing *hardware* and *software* that **mimics the structure and functioning of the human brain's neural networks** to improve energy efficiency and performance in tasks like pattern recognition and learning. <br>
 The key components of neuromorphic systems are <u>*synaptic-like*</u> devices, which emulate the behavior of biological synapses. These devices enable systems to replicate brain-like learning and adaptability by adjusting their "*synaptic weights*" based on experience, similar to how biological synapses **strengthen** or **weaken** connections through a process called *synaptic plasticity*.
 
 ## Metal-Oxide Memristors Crossbars

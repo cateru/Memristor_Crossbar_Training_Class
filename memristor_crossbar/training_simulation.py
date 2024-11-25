@@ -5,24 +5,28 @@ from Memristor_Crossbar import Memristor_Crossbar
 
 def setup_logging(level=logging.INFO):
     """
-    Configures the logging module for the application.
+    Configure the logging module for the application.
 
-    Args:
-        level (int): The logging level, set to `logging.INFO` by default.
-                     This means that all log messages at this level and above 
-                     (i.e., INFO, WARNING, ERROR, and CRITICAL) will be output.
+    Parameters
+    ----------
+    level : int, optional
+        The logging level, set to `logging.INFO` by default. This means that all log messages at this level
+        and above (i.e., INFO, WARNING, ERROR, and CRITICAL) will be output.
 
-    Example:
-        >>> setup_logging()
+    Examples
+    --------
+    >>> setup_logging()
     """
     logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def define_training_data():
     """
-    Defines the training dataset.
+    Define the training dataset.
 
-    Returns:
-        np.ndarray: A 2D NumPy array where each row represents a training sample.
+    Returns
+    -------
+    np.ndarray
+        A 2D NumPy array where each row represents a training sample.
     """
     return np.array([[0, 0, 0, 1],
                      [0, 0, 1, 0],
@@ -33,10 +37,12 @@ def define_training_data():
 
 def define_testing_data():
     """
-    Defines the testing dataset.
+    Define the testing dataset.
 
-    Returns:
-        np.ndarray: A 2D NumPy array where each row represents a test sample.
+    Returns
+    -------
+    np.ndarray
+        A 2D NumPy array where each row represents a test sample.
     """
     return np.array([[0, 0, 0, 0],
                      [0, 0, 1, 1],
@@ -51,10 +57,12 @@ def define_testing_data():
 
 def define_training_outputs():
     """
-    Defines the training outputs.
+    Define the training outputs.
 
-    Returns:
-        np.ndarray: A 2D NumPy array where each row corresponds to the output labels for the training samples.
+    Returns
+    -------
+    np.ndarray
+        A 2D NumPy array where each row corresponds to the output labels for the training samples.
     """
     return np.array([[0, 1],
                      [1, 0],
@@ -65,10 +73,12 @@ def define_training_outputs():
 
 def define_testing_outputs():
     """
-    Defines the testing outputs.
+    Define the testing outputs.
 
-    Returns:
-        np.ndarray: A 2D NumPy array where each row corresponds to the output labels for the test samples.
+    Returns
+    -------
+    np.ndarray
+        A 2D NumPy array where each row corresponds to the output labels for the test samples.
     """
     return np.array([[0, 0],
                      [0, 0],

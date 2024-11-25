@@ -7,7 +7,7 @@ Welcome to Memristor Crossbar Training class's documentation!
 =============================================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Getting Started:
 
    Introduction.md
@@ -19,7 +19,7 @@ Welcome to Memristor Crossbar Training class's documentation!
    Appendix.md
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Documentation:
 
    memristor_crossbar

@@ -3,7 +3,7 @@
 To begin using the library, you can execute the `training_simulation.py` file, which provides a usage example. For instance:
 
 ```bash
-$ python training_simulation.py
+python training_simulation.py
 ```
 
 This file includes the Memristor Crossbar class and creates an instance. It also provides an example set of real conductance values, in case the user doesn’t have his own. For this specific example, a set of optimal parameters has been chosen for the dataset, and the fit method is applied using these parameters along with the provided experimental data. <br>
@@ -23,7 +23,9 @@ By using this approach, if the simulation converges, the user can take the saved
 To perform a single simulation, comment out the last two lines of the `training_simulation.py` code.
 ```
 
-Extensive studies have shown that the convergence of training is closely tied to the relationship between the dataset's on/off ratio and the range of the shifts. Specifically, the on/off ratio must be significantly larger than the shift range to ensure effective training. Therefore, users are encouraged to carefully configure the parameters of the lognormal shifts.
+```{tip}
+**Tip:** Extensive studies have shown that the convergence of training is closely tied to the relationship between the dataset's on/off ratio and the range of the shifts. Specifically, the on/off ratio must be significantly larger than the shift range to ensure effective training. Therefore, users are encouraged to carefully configure the parameters of the lognormal shifts.
+```
 
 <div class="github-badge">
 <a href="https://github.com/cateru/Memristor_Crossbar_Training_Class">
